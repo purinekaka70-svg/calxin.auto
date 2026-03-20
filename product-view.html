@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - Calxin Auto Mombasa</title>
+    <meta name="description" content="View detailed spare part information, stock, and direct request options from Calxin Auto Mombasa.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <link rel="stylesheet" href="project.css">
+    <link rel="stylesheet" href="product-view.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html"><h1>Calxin Auto Mombasa</h1></a>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="contact.html">Contact</a>
+                <a href="chat.html">Live Chat</a>
+                <a href="login.html" data-auth-link="account">Sign In</a>
+            </div>
+            <a href="cart.html" class="cart-icon store-cart-link" data-cart-link>
+                <i class="fas fa-shopping-cart"></i>
+                <span id="cart-count" data-cart-count class="is-empty">0</span>
+            </a>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <aside class="side-menu" id="sideMenu">
+        <h3><i class="fas fa-bars"></i> Menu</h3>
+        <ul class="nav-menu">
+            <li><a href="index.html" onclick="closeMenu()"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="about.html" onclick="closeMenu()"><i class="fas fa-info-circle"></i> About</a></li>
+            <li><a href="contact.html" onclick="closeMenu()"><i class="fas fa-envelope"></i> Contact</a></li>
+            <li><a href="chat.html" onclick="closeMenu()"><i class="fas fa-comments"></i> Live Chat</a></li>
+            <li><a href="cart.html" onclick="closeMenu()"><i class="fas fa-shopping-cart"></i> Request List</a></li>
+            <li><a href="login.html" data-auth-link="account" onclick="closeMenu()"><i class="fas fa-user"></i> Sign In</a></li>
+        </ul>
+        <hr>
+        <h4>Contact Us</h4>
+        <p style="margin: 0; color: #5a6572; line-height: 1.7;">Call: 0706 931802</p>
+        <p style="margin: 10px 0 0; color: #5a6572; line-height: 1.7;">Send requests through live chat or WhatsApp. Final payment is handled off-site after confirmation.</p>
+    </aside>
+
+    <div class="breadcrumb">
+        <a href="index.html">Home</a> /
+        <span id="breadcrumbName">Product</span>
+    </div>
+
+    <div class="container">
+        <div class="product-container">
+            <div class="product-image-section">
+                <div class="main-image">
+                    <img id="mainImage" src="" alt="Product">
+                </div>
+            </div>
+
+            <div class="product-details-section">
+                <h1 id="productName">Product Name</h1>
+                <p class="category" id="productCategory">Category</p>
+
+                <div class="rating-section">
+                    <p class="rating" id="productRating">⭐ 4.5</p>
+                    <p class="stock" id="productStock">20 in Stock</p>
+                </div>
+
+                <div class="price-section">
+                    <h2 id="productPrice" class="price">KES 0</h2>
+                    <p class="original-price">Request stock confirmation through chat or WhatsApp.</p>
+                </div>
+
+                <div class="description-section">
+                    <h3>Product Details</h3>
+                    <div class="specs">
+                        <div class="spec-item">
+                            <span class="spec-label">Category:</span>
+                            <span id="specCategory" class="spec-value">-</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Estimated Price:</span>
+                            <span id="specPrice" class="spec-value">-</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Stock:</span>
+                            <span id="specStock" class="spec-value">-</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Rating:</span>
+                            <span id="specRating" class="spec-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-section">
+                    <div class="quantity-selector">
+                        <label for="quantity">Quantity:</label>
+                        <div class="quantity-input">
+                            <button type="button" onclick="decreaseQuantity()">-</button>
+                            <input type="number" id="quantity" value="1" min="1" readonly>
+                            <button type="button" onclick="increaseQuantity()">+</button>
+                        </div>
+                    </div>
+
+                    <button class="btn-add-cart" id="requestBtn" type="button" onclick="addProductToRequest()">
+                        <i class="fas fa-clipboard-list"></i> Add To Request List
+                    </button>
+                    <button class="btn-wishlist" id="whatsappBtn" type="button" onclick="openProductWhatsapp()">
+                        <i class="fab fa-whatsapp"></i> Talk On WhatsApp
+                    </button>
+                </div>
+
+                <div class="info-section">
+                    <p><i class="fas fa-comments"></i> <strong>Live Chat Support</strong> after sign in for direct replies from admin</p>
+                    <p><i class="fas fa-phone"></i> <strong>Call Us</strong> on 0706 931802 for urgent stock checks</p>
+                    <p><i class="fas fa-file-invoice"></i> <strong>No online payment on site</strong> final payment is confirmed after stock verification</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="related-section">
+            <h2>Related Products in <span id="relatedCategory"></span></h2>
+            <div class="related-products" id="relatedProducts"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Us</h4>
+                <p>Calxin Auto Mombasa supplies verified spare parts and helps customers confirm stock before payment.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="chat.html">Live Chat</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Info</h4>
+                <p>Email: calxinkenya147@gmail.com</p>
+                <p>Phone: 0706 931802</p>
+                <p>Location: Mombasa, Kenya</p>
+            </div>
+            <div class="footer-section">
+                <h4>Support Channels</h4>
+                <p>WhatsApp Owner: 0706 931802</p>
+                <p>Live chat available after sign in.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Calxin Auto Mombasa. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="customer-session.js"></script>
+    <script src="catalog-api.js"></script>
+    <script src="cart-icon.js"></script>
+    <script src="product-view.js"></script>
+</body>
+</html>

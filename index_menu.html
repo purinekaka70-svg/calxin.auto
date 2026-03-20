@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calxin Auto - Main Menu</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: linear-gradient(135deg, #0077be, #00a8e8);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0077be, #00a8e8);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 40px;
+        }
+        
+        .menu-item {
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .menu-item:hover {
+            transform: translateY(-5px);
+            border-color: #0077be;
+            box-shadow: 0 10px 30px rgba(0, 122, 190, 0.2);
+        }
+        
+        .menu-icon {
+            font-size: 3rem;
+            color: #0077be;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .menu-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #0077be;
+            margin-bottom: 10px;
+        }
+        
+        .menu-description {
+            font-size: 0.95rem;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .section {
+            padding: 40px;
+            border-top: 1px solid #eee;
+        }
+        
+        .section h2 {
+            color: #0077be;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .info-box {
+            background: #f0f9ff;
+            border-left: 4px solid #0077be;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+        }
+        
+        .info-box strong {
+            color: #0077be;
+        }
+        
+        .footer {
+            background: #f5f5f5;
+            padding: 20px 40px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .menu {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-car"></i> Calxin Auto Mombasa</h1>
+        <p>Main Menu & Navigation Center</p>
+    </div>
+    
+    <div class="menu">
+        <a href="index.html" class="menu-item">
+            <i class="fas fa-home menu-icon"></i>
+            <div class="menu-title">Home Page</div>
+            <div class="menu-description">Browse products and spare parts inventory</div>
+        </a>
+        
+        <a href="about.html" class="menu-item">
+            <i class="fas fa-info-circle menu-icon"></i>
+            <div class="menu-title">About Us</div>
+            <div class="menu-description">Learn about Calxin Auto with image gallery</div>
+        </a>
+        
+        <a href="contact.html" class="menu-item">
+            <i class="fas fa-envelope menu-icon"></i>
+            <div class="menu-title">Contact</div>
+            <div class="menu-description">Get in touch with our team</div>
+        </a>
+    </div>
+    
+    <div class="section">
+        <h2><i class="fas fa-book"></i> Documentation</h2>
+        <div class="info-box">
+            <strong>📋 Quick Reference:</strong> Read <code>QUICK_REFERENCE.md</code> for a quick start guide
+        </div>
+        <div class="info-box">
+            <strong>📚 Admin Guide:</strong> Read <code>ADMIN_GUIDE.md</code> for detailed admin panel instructions
+        </div>
+        <div class="info-box">
+            <strong>✅ Updates Summary:</strong> Read <code>UPDATES_SUMMARY.md</code> for all recent changes
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2><i class="fas fa-rocket"></i> Quick Tips</h2>
+        <div class="info-box">
+            <strong>🖼️ Add Products:</strong> Use admin panel to add new products. Image paths should be: <code>images.Calxin/image_name.jpeg</code>
+        </div>
+        <div class="info-box">
+            <strong>📝 Create Posts:</strong> Use admin panel to create blog posts and news updates
+        </div>
+        <div class="info-box">
+            <strong>🎨 Upload Images:</strong> Manage all images through the admin panel's image gallery
+        </div>
+        <div class="info-box">
+            <strong>💾 Data Storage:</strong> All admin data is stored in browser localStorage
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>&copy; 2026 Calxin Auto Mombasa | All Rights Reserved | Last Updated: January 24, 2026</p>
+    </div>
+</div>
+
+</body>
+</html>

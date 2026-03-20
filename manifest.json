@@ -1,0 +1,21 @@
+{
+  "name": "Calxin Auto Spares",
+  "short_name": "Calxin",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#00a8e8",
+  "description": "Your number one source for quality auto parts.",
+  "icons": [
+    {
+      "src": "calxin.images/WhatsApp Image 2026-01-23 at 4.58.19 PM.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "calxin.images/WhatsApp Image 2026-01-23 at 4.58.19 PM.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

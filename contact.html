@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Calxin Auto Mombasa</title>
+    <meta name="description" content="Contact Calxin Auto Mombasa for spare parts enquiries, stock checks, and customer support.">
+    <link rel="stylesheet" href="contact.css">
+    <link rel="stylesheet" href="project.css">
+    <script src="customer-session.js" defer></script>
+    <script src="cart-icon.js" defer></script>
+    <script src="contact.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+    <div class="header-left">
+        <div class="hamburger" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <h1>Calxin Auto Mombasa</h1>
+    </div>
+
+    <div class="header-right">
+        <nav class="header-nav">
+            <ul>
+                <li><a href="index.html" class="nav-link" data-section="home"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="about.html" class="nav-link" data-section="about"><i class="fas fa-info-circle"></i> About</a></li>
+                <li><a href="contact.html" class="nav-link active" data-section="contact"><i class="fas fa-envelope"></i> Contact</a></li>
+                <li><a href="chat.html" class="nav-link" data-section="chat"><i class="fas fa-comments"></i> Live Chat</a></li>
+                <li><a href="login.html" class="nav-link" data-auth-link="account"><i class="fas fa-user"></i> Sign In</a></li>
+            </ul>
+        </nav>
+        <a href="cart.html" class="cart-icon store-cart-link" data-cart-link>
+            <i class="fas fa-shopping-cart"></i>
+            <span id="cart-count" data-cart-count class="is-empty">0</span>
+        </a>
+    </div>
+</header>
+
+<!-- SIDE MENU -->
+<aside class="side-menu" id="sideMenu">
+    <h3><i class="fas fa-bars"></i> Menu</h3>
+    <ul class="nav-menu">
+        <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+        <li><a href="about.html"><i class="fas fa-info-circle"></i> About</a></li>
+        <li><a href="contact.html"><i class="fas fa-envelope"></i> Contact</a></li>
+        <li><a href="chat.html"><i class="fas fa-comments"></i> Live Chat</a></li>
+        <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Request List</a></li>
+        <li><a href="login.html" data-auth-link="account"><i class="fas fa-user"></i> Sign In</a></li>
+    </ul>
+    <hr>
+    <h4>Spare Parts</h4>
+    <ul class="spare-parts-menu">
+        <li><i class="fas fa-cog"></i> Engine Parts</li>
+        <li><i class="fas fa-circle"></i> Brake System</li>
+        <li><i class="fas fa-arrows"></i> Suspension</li>
+        <li><i class="fas fa-ring"></i> Tires & Wheels</li>
+        <li><i class="fas fa-bolt"></i> Electrical</li>
+        <li><i class="fas fa-water"></i> Cooling System</li>
+        <li><i class="fas fa-gear"></i> Transmission</li>
+        <li><i class="fas fa-chair"></i> Interior Trim</li>
+        <li><i class="fas fa-volume-up"></i> Audio & Navigation</li>
+        <li><i class="fas fa-lightbulb"></i> Lights</li>
+        <li><i class="fas fa-paint-brush"></i> Paint & Body</li>
+        <li><i class="fas fa-rocket"></i> Performance Parts</li>
+    </ul>
+</aside>
+
+<!-- HERO SECTION -->
+<section class="hero-contact">
+    <div class="hero-content">
+        <h2>Contact Calxin Auto Support</h2>
+        <p>Use the official enquiry channels below for stock checks, spare parts requests, and order follow-up.</p>
+    </div>
+</section>
+
+<!-- CONTACT CONTENT -->
+<main class="contact-container">
+    
+    <!-- Contact Info Cards -->
+    <section class="contact-info">
+        <div class="info-card">
+            <div class="info-icon">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <h3>Visit Us</h3>
+            <p>Mombasa, Kenya</p>
+            <p>Spare parts enquiry desk and support point</p>
+        </div>
+
+        <div class="info-card">
+            <div class="info-icon">
+                <i class="fas fa-phone"></i>
+            </div>
+            <h3>Call Us</h3>
+            <p>0706 931802</p>
+            <p>WhatsApp and direct owner support</p>
+        </div>
+
+        <div class="info-card">
+            <div class="info-icon">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <h3>Email Us</h3>
+            <p>calxinkenya147@gmail.com</p>
+            <p>Official support mailbox</p>
+        </div>
+
+        <div class="info-card">
+            <div class="info-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h3>Business Hours</h3>
+            <p>Mon - Fri: 8:00 AM - 6:00 PM</p>
+            <p>Sat - Sun: 9:00 AM - 4:00 PM</p>
+        </div>
+    </section>
+
+    <!-- Contact Form Section -->
+    <section class="contact-form-section">
+        <div class="form-container">
+            <h2>Send an Official Enquiry or Spare Parts Request</h2>
+            <form id="contactForm">
+                <div class="form-group">
+                    <label for="messageType">What would you like to do? *</label>
+                    <select id="messageType" name="messageType" required onchange="toggleOrderFields()">
+                        <option value="">-- Select an option --</option>
+                        <option value="inquiry">Send a Message/Inquiry</option>
+                        <option value="order">Request Spare Parts</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="name">Full Name *</label>
+                    <input type="text" id="name" name="name" placeholder="e.g., John Mwale" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" placeholder="e.g., john@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" placeholder="e.g., 0706 931802" required>
+                </div>
+
+                <!-- Order Fields (Hidden by default) -->
+                <div id="orderFields" class="order-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="vehicleType">Vehicle Type/Model *</label>
+                        <input type="text" id="vehicleType" name="vehicleType" placeholder="e.g., Toyota Land Cruiser, BMW X5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="spareParts">Spare Parts *</label>
+                        <select id="spareParts" name="spareParts" multiple size="6">
+                            <option value="Engine Parts">Engine Parts (Oil, Filters, Gaskets, Belts)</option>
+                            <option value="Brake System">Brake System (Pads, Rotors, Calipers)</option>
+                            <option value="Suspension">Suspension (Springs, Shocks, Bearings)</option>
+                            <option value="Tire & Wheels">Tires & Wheels (New/Used, All Sizes)</option>
+                            <option value="Electrical">Electrical (Alternators, Starters, Batteries)</option>
+                            <option value="Cooling System">Cooling System (Radiators, Water Pumps)</option>
+                            <option value="Transmission">Transmission Parts (Gearbox, Torque Converter)</option>
+                            <option value="Interior Trim">Interior Trim & Accessories</option>
+                            <option value="Audio & Navigation">Audio & Navigation Systems</option>
+                            <option value="Lights">Headlights, Taillights & Fixtures</option>
+                            <option value="Paint & Body">Paint & Body Repair Materials</option>
+                            <option value="Performance Parts">Performance & Tuning Parts</option>
+                        </select>
+                        <small style="color: #999; display: block; margin-top: 5px;">Hold Ctrl/Cmd to select multiple parts</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantity">Quantity *</label>
+                        <input type="number" id="quantity" name="quantity" min="1" value="1" placeholder="e.g., 1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="budget">Budget Range (KES) *</label>
+                        <input type="text" id="budget" name="budget" placeholder="e.g., 2,000,000 - 5,000,000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="deliveryDate">Preferred Delivery Date</label>
+                        <input type="date" id="deliveryDate" name="deliveryDate" placeholder="Select a date">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="features">Special Features/Requirements</label>
+                        <textarea id="features" name="features" rows="3" placeholder="e.g., Automatic transmission, AC, Sunroof, Navigation system, etc."></textarea>
+                    </div>
+                </div>
+
+                <!-- General Fields -->
+                <div class="form-group" id="subjectGroup">
+                    <label for="subject">Subject *</label>
+                    <input type="text" id="subject" name="subject" placeholder="e.g., Inquiry about vehicle warranty" required>
+                </div>
+
+                <div class="form-group" id="messageGroup">
+                    <label for="message">Message *</label>
+                    <textarea id="message" name="message" rows="6" placeholder="Please describe your inquiry or question in detail..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+            <div id="formMessage" class="form-message"></div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="map-container">
+            <h2>Find Us on Map</h2>
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3979.745149449988!2d39.66387!3d-4.043477!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x184055e8d7b6e6f3%3A0x1234567890abcdef!2sMombasa%2C%20Kenya!5e0!3m2!1sen!2ske!4v1234567890" width="100%" height="400" style="border:0; border-radius: 8px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-container">
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <h4>How do I confirm price and payment?</h4>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>The website only collects your request. Final price, stock confirmation, and payment method are agreed directly with Calxin Auto after live chat or WhatsApp confirmation.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <h4>Do you deliver spare parts?</h4>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes. Delivery and pickup options are confirmed after the owner reviews your request and checks stock availability.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <h4>How do I know the part is available?</h4>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Send the part through the request list, live chat, or WhatsApp. The admin team then confirms stock, condition, and the best current price before you commit.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <h4>What are your business hours?</h4>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Our listed support hours are Monday to Friday from 8:00 AM to 6:00 PM, and Saturday to Sunday from 9:00 AM to 4:00 PM.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    <h4>How can I speak to the owner quickly?</h4>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>For urgent stock checks or direct follow-up, call 0706 931802 or open WhatsApp from the website. Live chat is also available after sign in.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h4>About Us</h4>
+            <p>Calxin Auto Mombasa handles spare parts enquiries, stock checks, and request follow-up through direct support channels.</p>
+        </div>
+        <div class="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h4>Contact Info</h4>
+            <p>Email: calxinkenya147@gmail.com</p>
+            <p>Phone: 0706 931802</p>
+            <p>Location: Mombasa, Kenya</p>
+        </div>
+        <div class="footer-section">
+            <h4>Support Channels</h4>
+            <p>Call: 0706 931802</p>
+            <p>WhatsApp: 0706 931802</p>
+            <p>Live chat is available after sign in.</p>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2026 Calxin Auto Mombasa. All rights reserved.</p>
+        <p>Official Calxin Auto Mombasa website.</p>
+    </div>
+</footer>
+
+</body>
+</html>

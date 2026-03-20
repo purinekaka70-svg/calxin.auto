@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="Ty8tE1llH9IDNdAhWChZmkoPtDZda6Y5fPr9b3ylI6s">
+    <title>Calxin Auto Mombasa</title>
+    <meta name="description" content="Browse spare parts from Calxin Auto Mombasa and send request lists directly to the owner through live chat or WhatsApp.">
+    <link rel="stylesheet" href="project.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="customer-session.js" defer></script>
+    <script src="catalog-api.js" defer></script>
+    <script src="cart-icon.js" defer></script>
+    <script src="project12.js" defer></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <h1>Calxin Auto Mombasa</h1>
+        </div>
+
+        <div class="header-right">
+            <nav class="header-nav">
+                <ul>
+                    <li><a href="index.html" class="nav-link active"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="about.html" class="nav-link"><i class="fas fa-info-circle"></i> About</a></li>
+                    <li><a href="contact.html" class="nav-link"><i class="fas fa-envelope"></i> Contact</a></li>
+                    <li><a href="chat.html" class="nav-link"><i class="fas fa-comments"></i> Live Chat</a></li>
+                    <li><a href="login.html" class="nav-link" data-auth-link="account"><i class="fas fa-user"></i> Sign In</a></li>
+                </ul>
+            </nav>
+            <a href="cart.html" class="cart-icon store-cart-link" data-cart-link>
+                <i class="fas fa-shopping-cart"></i>
+                <span id="cart-count" data-cart-count class="is-empty">0</span>
+            </a>
+        </div>
+    </header>
+
+    <section class="search-box">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Search vehicle, brand or spare part...">
+    </section>
+
+    <section style="padding: 0 20px 16px;">
+        <div style="max-width: 1200px; margin: 0 auto; background: linear-gradient(135deg, #10334b 0%, #0d6ba8 100%); color: #fff; border-radius: 28px; padding: 26px; display: grid; gap: 10px; box-shadow: 0 16px 40px rgba(7, 27, 43, 0.16);">
+            <p style="margin: 0; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.78rem; color: #f3cd7e;">Official Request-Based Store</p>
+            <div class="hero-chip-row">
+                <span class="hero-chip">Spare Parts Supplier</span>
+                <span class="hero-chip">Mombasa, Kenya</span>
+                <span class="hero-chip">Stock Checked Before Payment</span>
+            </div>
+            <h2 style="margin: 0; font-size: clamp(1.7rem, 3.8vw, 2.8rem);">Browse parts online, then confirm directly with Calxin Auto support.</h2>
+            <p style="margin: 0; color: rgba(255,255,255,0.84); line-height: 1.7;">Call us on 0706 931802. The website does not show online payment. Every request is reviewed first for stock, pricing, and delivery before you proceed.</p>
+            <div class="hero-action-row">
+                <a class="hero-action-btn hero-action-btn-light" href="tel:+254706931802">Call 0706 931802</a>
+                <a class="hero-action-btn hero-action-btn-outline" href="https://wa.me/254706931802" target="_blank" rel="noopener noreferrer">Open WhatsApp</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="trust-strip" aria-label="Business trust details">
+        <article class="trust-card">
+            <strong>Business Location</strong>
+            <span>Mombasa, Kenya</span>
+        </article>
+        <article class="trust-card">
+            <strong>Support Hours</strong>
+            <span>Mon - Fri 8:00 AM - 6:00 PM</span>
+        </article>
+        <article class="trust-card">
+            <strong>Order Flow</strong>
+            <span>Request first, confirm stock before payment</span>
+        </article>
+        <article class="trust-card">
+            <strong>Direct Contact</strong>
+            <span>Live chat and owner WhatsApp support</span>
+        </article>
+    </section>
+
+    <aside class="side-menu" id="sideMenu">
+        <h3><i class="fas fa-bars"></i> Menu</h3>
+        <ul class="nav-menu">
+            <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="about.html"><i class="fas fa-info-circle"></i> About</a></li>
+            <li><a href="contact.html"><i class="fas fa-envelope"></i> Contact</a></li>
+            <li><a href="chat.html"><i class="fas fa-comments"></i> Live Chat</a></li>
+            <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Request List</a></li>
+            <li><a href="login.html" data-auth-link="account"><i class="fas fa-user"></i> Sign In</a></li>
+        </ul>
+        <hr>
+        <h4>Spare Parts</h4>
+        <ul class="spare-parts-menu">
+            <li><i class="fas fa-cog"></i> Engine Parts</li>
+            <li><i class="fas fa-circle"></i> Brake System</li>
+            <li><i class="fas fa-arrows"></i> Suspension</li>
+            <li><i class="fas fa-ring"></i> Tires & Wheels</li>
+            <li><i class="fas fa-bolt"></i> Electrical</li>
+            <li><i class="fas fa-water"></i> Cooling System</li>
+            <li><i class="fas fa-gear"></i> Transmission</li>
+            <li><i class="fas fa-chair"></i> Interior Trim</li>
+            <li><i class="fas fa-volume-up"></i> Audio & Navigation</li>
+            <li><i class="fas fa-lightbulb"></i> Lights</li>
+            <li><i class="fas fa-paint-brush"></i> Paint & Body</li>
+            <li><i class="fas fa-rocket"></i> Performance Parts</li>
+        </ul>
+    </aside>
+
+    <section class="products-heading-wrap">
+        <h2 class="products-heading">Available Products</h2>
+    </section>
+    <main class="products"></main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Us</h4>
+                <p>Calxin Auto Mombasa supplies verified spare parts and handles order requests directly with support staff.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="chat.html">Live Chat</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Info</h4>
+                <p>Email: calxinkenya147@gmail.com</p>
+                <p>Phone: 0706 931802</p>
+                <p>Location: Mombasa, Kenya</p>
+            </div>
+            <div class="footer-section">
+                <h4>Owner Support</h4>
+                <p>WhatsApp: 0706 931802</p>
+                <p>Live chat is available after sign in.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Calxin Auto Mombasa. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

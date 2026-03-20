@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Live Chat - Calxin Auto Mombasa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <link rel="stylesheet" href="chat.css">
+</head>
+<body>
+    <header class="chat-header">
+        <a href="index.html" class="chat-brand">
+            <span class="brand-mark">CA</span>
+            <span>Calxin Auto Mombasa</span>
+        </a>
+        <nav class="chat-nav">
+            <a href="index.html">Home</a>
+            <a href="cart.html">Request List</a>
+            <a href="contact.html">Contact</a>
+            <a href="login.html" data-auth-link="account">Sign In</a>
+        </nav>
+    </header>
+
+    <main class="chat-shell">
+        <aside class="chat-sidebar">
+            <div class="profile-card">
+                <p class="eyebrow">Signed in customer</p>
+                <h1 data-customer-name>Customer</h1>
+                <p class="profile-copy">Your order requests and support messages stay here so the admin team can reply directly.</p>
+                <div class="profile-actions">
+                    <a href="cart.html" class="mini-btn">Request List</a>
+                    <a href="https://wa.me/254706931802" class="mini-btn mini-btn-accent" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                </div>
+            </div>
+
+            <form id="newChatForm" class="new-chat-card">
+                <h2>Start a new chat</h2>
+                <label for="newChatSubject">Subject</label>
+                <input id="newChatSubject" type="text" placeholder="Stock check or part inquiry" required>
+
+                <label for="newChatMessage">First message</label>
+                <textarea id="newChatMessage" rows="4" placeholder="Tell us what spare part you need." required></textarea>
+
+                <button type="submit" class="primary-btn">Open Live Chat</button>
+            </form>
+
+            <section class="thread-list-card">
+                <div class="thread-list-head">
+                    <h2>Your conversations</h2>
+                    <button id="refreshThreadsBtn" type="button" class="icon-btn" aria-label="Refresh chats">
+                        <i class="fas fa-rotate"></i>
+                    </button>
+                </div>
+                <div id="threadList" class="thread-list"></div>
+            </section>
+        </aside>
+
+        <section class="chat-main">
+            <div id="chatNotice" class="chat-notice" aria-live="polite"></div>
+
+            <div id="chatEmptyState" class="chat-empty">
+                <i class="fas fa-comments"></i>
+                <h2>No chat selected</h2>
+                <p>Open a new conversation or select one of your previous order requests.</p>
+            </div>
+
+            <div id="chatConversation" class="chat-conversation" style="display: none;">
+                <div class="conversation-head">
+                    <div>
+                        <p class="eyebrow">Live conversation</p>
+                        <h2 id="activeThreadTitle">Customer Request</h2>
+                        <p id="activeThreadMeta" class="conversation-meta"></p>
+                    </div>
+                    <span id="activeThreadStatus" class="status-pill">Open</span>
+                </div>
+
+                <div id="messageList" class="message-list"></div>
+
+                <form id="messageForm" class="message-form">
+                    <textarea id="messageInput" rows="4" placeholder="Write your message to Calxin Auto support." required></textarea>
+                    <div class="message-actions">
+                        <a class="mini-btn mini-btn-accent" href="https://wa.me/254706931802" target="_blank" rel="noopener noreferrer">WhatsApp Owner</a>
+                        <button type="submit" class="primary-btn">Send Message</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script src="customer-session.js"></script>
+    <script src="catalog-api.js"></script>
+    <script src="chat.js"></script>
+</body>
+</html>

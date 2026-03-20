@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin Sign In - Calxin Auto Mombasa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <main class="auth-shell">
+        <section class="auth-showcase">
+            <a class="brand-link" href="index.html">
+                <span class="brand-mark">CA</span>
+                <span>Calxin Auto Mombasa</span>
+            </a>
+            <p class="eyebrow">Admin access</p>
+            <h1>Sign in to manage products, requests, chats, and media.</h1>
+            <p class="lead">
+                This area controls the catalog and customer request workflow. Only authorized admin users should continue.
+            </p>
+            <div class="showcase-card">
+                <div class="showcase-row">
+                    <i class="fas fa-cube"></i>
+                    <div>
+                        <strong>Catalog Control</strong>
+                        <span>Create and update products, posts, and media</span>
+                    </div>
+                </div>
+                <div class="showcase-row">
+                    <i class="fas fa-comments"></i>
+                    <div>
+                        <strong>Customer Support</strong>
+                        <span>Reply to request chats and manage order status</span>
+                    </div>
+                </div>
+                <div class="showcase-row">
+                    <i class="fas fa-lock"></i>
+                    <div>
+                        <strong>Protected Access</strong>
+                        <span>Admin session required for dashboard access</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="auth-panel">
+            <div class="panel-top">
+                <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to website</a>
+                <span class="support-tag">Admin dashboard access</span>
+            </div>
+
+            <div id="adminAuthFeedback" class="auth-feedback" aria-live="polite"></div>
+
+            <form id="adminLoginForm" class="auth-form">
+                <h2>Admin Sign In</h2>
+                <p>Enter the admin username and password configured on the server.</p>
+
+                <label for="adminUsername">Username</label>
+                <input type="text" id="adminUsername" placeholder="admin" autocomplete="username" required>
+
+                <label for="adminPassword">Password</label>
+                <input type="password" id="adminPassword" placeholder="Enter admin password" autocomplete="current-password" required>
+
+                <button class="btn btn-primary" type="submit">Open Admin Panel</button>
+            </form>
+        </section>
+    </main>
+
+    <script src="catalog-api.js"></script>
+    <script src="admin-login.js"></script>
+</body>
+</html>

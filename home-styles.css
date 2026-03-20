@@ -1,0 +1,224 @@
+/* ================================
+   PRODUCT BUTTONS (JUMIA STYLE)
+   ================================ */
+.product-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    width: 100%;
+}
+
+.btn-add-cart {
+    flex: 1;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #0077be, #00a8e8);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 119, 190, 0.3);
+}
+
+.btn-add-cart:hover {
+    background: linear-gradient(135deg, #005a99, #007cc9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 119, 190, 0.5);
+}
+
+.btn-add-cart:active {
+    transform: translateY(0);
+}
+
+.btn-wishlist {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    background: #f5f5f5;
+    color: #0077be;
+    border: 2px solid #0077be;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-wishlist:hover {
+    background: #0077be;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* ================================
+   PRODUCT ACTION BUTTONS (OLD STYLE - REMOVED)
+   ================================ */
+.footer {
+    background: #000;
+    color: white;
+    padding: 40px 20px;
+    margin-top: 50px;
+    text-align: center;
+}
+
+.footer-content {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.footer-content p {
+    margin: 5px 0;
+    font-size: 0.95rem;
+}
+
+.footer-content a {
+    color: #a8d8ff;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-content a:hover {
+    color: #00a8e8;
+}
+
+.footer-designers {
+    margin: 15px 0;
+    padding: 15px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.footer-designers p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+.footer-designers p:first-child {
+    font-weight: 600;
+    color: #a8d8ff;
+}
+
+.social-media {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.social-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #a8d8ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border: 1px solid #a8d8ff;
+}
+
+.social-icon:hover {
+    background: #0077be;
+    color: white;
+    border-color: #0077be;
+    transform: translateY(-3px);
+}
+
+/* ================================
+   RESPONSIVE DESIGN
+   ================================ */
+@media (max-width: 768px) {
+    .btn-add-cart {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+
+    .btn-wishlist {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+    }
+
+    .footer {
+        padding: 30px 15px;
+    }
+
+    .footer-content {
+        gap: 15px;
+    }
+
+    .footer-content p {
+        font-size: 0.9rem;
+    }
+
+    .footer-designers {
+        margin: 12px 0;
+        padding: 12px 0;
+    }
+
+    .footer-designers p {
+        font-size: 0.85rem;
+    }
+
+    .social-media {
+        gap: 10px;
+    }
+
+    .social-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-add-cart {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
+
+    .btn-wishlist {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+
+    .product-buttons {
+        gap: 8px;
+    }
+
+    .footer {
+        padding: 20px 10px;
+    }
+
+    .footer-content {
+        gap: 10px;
+    }
+
+    .footer-content p {
+        font-size: 0.85rem;
+    }
+
+    .footer-designers p {
+        font-size: 0.8rem;
+    }
+
+    .social-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+    }
+}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Request List - Calxin Auto Mombasa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <link rel="stylesheet" href="project.css">
+    <link rel="stylesheet" href="cart.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html"><h1>Calxin Auto Mombasa</h1></a>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="contact.html">Contact</a>
+                <a href="chat.html">Live Chat</a>
+                <a href="login.html" data-auth-link="account">Sign In</a>
+            </div>
+            <div class="hamburger" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <aside class="side-menu" id="sideMenu">
+        <h3><i class="fas fa-bars"></i> Menu</h3>
+        <ul class="nav-menu">
+            <li><a href="index.html" onclick="closeMobileMenu()"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="about.html" onclick="closeMobileMenu()"><i class="fas fa-info-circle"></i> About</a></li>
+            <li><a href="contact.html" onclick="closeMobileMenu()"><i class="fas fa-envelope"></i> Contact</a></li>
+            <li><a href="chat.html" onclick="closeMobileMenu()"><i class="fas fa-comments"></i> Live Chat</a></li>
+            <li><a href="login.html" data-auth-link="account" onclick="closeMobileMenu()"><i class="fas fa-user"></i> Sign In</a></li>
+        </ul>
+        <hr>
+        <h4>Call Us</h4>
+        <p style="margin: 0; color: #5a6572; line-height: 1.7;">0706 931802</p>
+        <p style="margin: 10px 0 0; color: #5a6572; line-height: 1.7;">No card payment is shown here. Send your request and continue with WhatsApp or live chat.</p>
+    </aside>
+
+    <div class="breadcrumb">
+        <a href="index.html">Home</a> /
+        <span>Request List</span>
+    </div>
+
+    <div class="container">
+        <div class="cart-wrapper">
+            <div class="cart-items-section">
+                <h1>Request List</h1>
+                <p style="margin: 0 0 18px; color: #5a6572; line-height: 1.7;">
+                    Select the parts you want, then send the request to Calxin Auto. We will confirm stock,
+                    delivery options, and the final price in live chat or WhatsApp.
+                </p>
+
+                <div class="cart-items" id="cartItemsContainer"></div>
+
+                <div id="emptyCartMessage" class="empty-cart" style="display: none;">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h2>Your request list is empty</h2>
+                    <p>Add spare parts from the catalog to continue.</p>
+                    <a href="index.html" class="btn btn-primary">Browse Products</a>
+                </div>
+            </div>
+
+            <div class="cart-summary-section">
+                <div class="cart-summary">
+                    <h2>Request Summary</h2>
+
+                    <div class="summary-item">
+                        <span>Items:</span>
+                        <span id="itemCount">0</span>
+                    </div>
+
+                    <div class="summary-item">
+                        <span>Quote Estimate:</span>
+                        <span id="subtotal">KES 0</span>
+                    </div>
+
+                    <div class="summary-divider"></div>
+
+                    <div class="summary-item total">
+                        <span>Status:</span>
+                        <span>Request only</span>
+                    </div>
+
+                    <div class="delivery-options" style="margin-top: 18px;">
+                        <h3 style="margin-bottom: 12px;">Your Contact Details</h3>
+                        <div class="request-contact-grid">
+                            <input id="requestCustomerName" type="text" placeholder="Full name">
+                            <input id="requestCustomerPhone" type="tel" placeholder="Phone / WhatsApp">
+                            <input id="requestCustomerEmail" type="email" placeholder="Email address (optional)">
+                        </div>
+                        <p id="accountStatus" style="margin: 0; color: #5a6572; line-height: 1.7;">
+                            Add your phone or WhatsApp number here. The admin will use it to confirm stock, pickup or delivery, and how to pay offline.
+                        </p>
+                    </div>
+
+                    <div class="promo-code">
+                        <textarea id="requestNote" rows="4" placeholder="Add vehicle model, engine size, pickup point, or any note for the owner." style="width: 100%; border: 1px solid #d8e0e7; border-radius: 12px; padding: 14px; font: inherit; resize: vertical;"></textarea>
+                    </div>
+
+                    <button class="btn btn-checkout" id="sendRequestBtn" type="button">
+                        <i class="fas fa-paper-plane"></i> Send Request To Admin
+                    </button>
+
+                    <button class="btn btn-secondary" id="whatsappQuoteBtn" type="button">
+                        <i class="fab fa-whatsapp"></i> Send On WhatsApp
+                    </button>
+
+                    <a href="chat.html" class="btn btn-secondary">
+                        <i class="fas fa-comments"></i> Open Live Chat
+                    </a>
+
+                    <a href="index.html" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Continue Browsing
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="suggested-section">
+        <h2>Popular Parts You May Also Need</h2>
+        <div class="suggested-grid" id="suggestedProducts"></div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Us</h4>
+                <p>Calxin Auto Mombasa supplies verified spare parts and handles customer requests directly with support staff.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="chat.html">Live Chat</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Info</h4>
+                <p>Email: calxinkenya147@gmail.com</p>
+                <p>Phone: 0706 931802</p>
+                <p>Location: Mombasa, Kenya</p>
+            </div>
+            <div class="footer-section">
+                <h4>Direct Support</h4>
+                <p>Live chat is available after sign in.</p>
+                <p>WhatsApp: 0706 931802</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Calxin Auto Mombasa. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="customer-session.js"></script>
+    <script src="catalog-api.js"></script>
+    <script src="cart.js"></script>
+</body>
+</html>

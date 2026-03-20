@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Calxin Auto Mombasa</title>
+    <meta name="description" content="Calxin Auto admin dashboard for managing products, images, posts, and searchable catalog data.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+<body>
+
+<div class="admin-container">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <div class="admin-header">
+            <h2><i class="fas fa-tachometer-alt"></i> Admin Panel</h2>
+        </div>
+        <nav class="admin-nav">
+            <a href="#" class="nav-item active" onclick="showSection('dashboard', this); return false;">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('products', this); return false;">
+                <i class="fas fa-cube"></i> Manage Products
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('posts', this); return false;">
+                <i class="fas fa-newspaper"></i> Manage Posts
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('images', this); return false;">
+                <i class="fas fa-images"></i> Manage Images
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('orders', this); return false;">
+                <i class="fas fa-shopping-bag"></i> Manage Requests
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('chats', this); return false;">
+                <i class="fas fa-comments"></i> Manage Chats
+            </a>
+            <button type="button" class="nav-item nav-item-button" onclick="logoutAdmin()">
+                <i class="fas fa-user-shield"></i> Sign Out Admin
+            </button>
+            <a href="index.html" class="nav-item logout">
+                <i class="fas fa-sign-out-alt"></i> Back to Site
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-content">
+        <div id="adminStatus" class="admin-status" aria-live="polite"></div>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <div class="section-header">
+                <h1>Dashboard</h1>
+            </div>
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-cube"></i></div>
+                    <div class="stat-info">
+                        <h3>Total Products</h3>
+                        <p id="totalProducts">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-newspaper"></i></div>
+                    <div class="stat-info">
+                        <h3>Total Posts</h3>
+                        <p id="totalPosts">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-image"></i></div>
+                    <div class="stat-info">
+                        <h3>Total Images</h3>
+                        <p id="totalImages">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-info">
+                        <h3>Total Requests</h3>
+                        <p id="totalOrders">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-comments"></i></div>
+                    <div class="stat-info">
+                        <h3>Open Chats</h3>
+                        <p id="totalChats">0</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Management Section -->
+        <section id="products" class="section">
+            <div class="section-header">
+                <h1>Manage Products</h1>
+                <button class="btn btn-primary" onclick="showAddProductForm()">
+                    <i class="fas fa-plus"></i> Add New Product
+                </button>
+            </div>
+
+            <!-- Add/Edit Product Form -->
+            <div id="productForm" class="form-container" style="display: none;">
+                <h2>Add/Edit Product</h2>
+                <form onsubmit="saveProduct(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Product Name *</label>
+                            <input type="text" id="productName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Price (KES) *</label>
+                            <input type="number" id="productPrice" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Category *</label>
+                            <select id="productCategory" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Stock Quantity *</label>
+                            <input type="number" id="productStock" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Image URL/Path</label>
+                        <input type="text" id="productImage" placeholder="e.g., images.Calxin/product.jpeg">
+                    </div>
+                    <div class="form-group">
+                        <label>Upload Product Image</label>
+                        <input type="file" id="productImageFile" accept="image/*">
+                        <small class="form-help">Upload a file from your computer or paste an image URL above.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="productDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Document URL</label>
+                            <input type="text" id="productDocumentUrl" placeholder="Firebase document link or PDF URL">
+                        </div>
+                        <div class="form-group">
+                            <label>Document Provider</label>
+                            <select id="productDocumentProvider">
+                                <option value="">None</option>
+                                <option value="firebase">Firebase</option>
+                                <option value="mysql">MySQL</option>
+                                <option value="external">External URL</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Rating (0-5)</label>
+                        <input type="number" id="productRating" min="0" max="5" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Publishing Status</label>
+                        <select id="productPublished">
+                            <option value="1">Published</option>
+                            <option value="0">Draft</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-success">Save Product</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideAddProductForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Products List -->
+            <div class="table-container">
+                <table id="productsTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price (KES)</th>
+                            <th>Stock</th>
+                            <th>Rating</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Posts Management Section -->
+        <section id="posts" class="section">
+            <div class="section-header">
+                <h1>Manage Posts</h1>
+                <button class="btn btn-primary" onclick="showAddPostForm()">
+                    <i class="fas fa-plus"></i> Add New Post
+                </button>
+            </div>
+
+            <!-- Add/Edit Post Form -->
+            <div id="postForm" class="form-container" style="display: none;">
+                <h2>Add/Edit Post</h2>
+                <form onsubmit="savePost(event)">
+                    <div class="form-group">
+                        <label>Post Title *</label>
+                        <input type="text" id="postTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Post Content *</label>
+                        <textarea id="postContent" rows="6" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Post Excerpt</label>
+                        <textarea id="postExcerpt" rows="2" placeholder="Short summary used for previews and SEO"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Featured Image URL</label>
+                        <input type="text" id="postImage" placeholder="e.g., images.Calxin/post.jpeg">
+                    </div>
+                    <div class="form-group">
+                        <label>Upload Featured Image</label>
+                        <input type="file" id="postImageFile" accept="image/*">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Document URL</label>
+                            <input type="text" id="postDocumentUrl" placeholder="Firebase document link or PDF URL">
+                        </div>
+                        <div class="form-group">
+                            <label>Document Provider</label>
+                            <select id="postDocumentProvider">
+                                <option value="">None</option>
+                                <option value="firebase">Firebase</option>
+                                <option value="mysql">MySQL</option>
+                                <option value="external">External URL</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Publishing Status</label>
+                        <select id="postPublished">
+                            <option value="1">Published</option>
+                            <option value="0">Draft</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-success">Save Post</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideAddPostForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Posts List -->
+            <div class="table-container">
+                <table id="postsTable">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Date Created</th>
+                            <th>Preview</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="postsTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Images Management Section -->
+        <section id="images" class="section">
+            <div class="section-header">
+                <h1>Manage Images</h1>
+                <button class="btn btn-primary" onclick="showUploadImageForm()">
+                    <i class="fas fa-cloud-upload-alt"></i> Upload Image
+                </button>
+            </div>
+
+            <!-- Upload Image Form -->
+            <div id="imageForm" class="form-container" style="display: none;">
+                <h2>Upload Image</h2>
+                <form onsubmit="saveImage(event)">
+                    <div class="form-group">
+                        <label>Image Name *</label>
+                        <input type="text" id="imageName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Image File *</label>
+                        <input type="file" id="imageFile" accept="image/*">
+                        <small>Supported: JPG, PNG, GIF, WebP</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Or Image URL/Path</label>
+                        <input type="text" id="imageUrl" placeholder="e.g., calxin.images/WhatsApp Image.jpeg">
+                    </div>
+                    <div class="form-group" id="imagePreviewContainer" style="display: none;">
+                        <label>Image Preview:</label>
+                        <img id="imagePreview" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 10px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Image Description</label>
+                        <textarea id="imageDescription" rows="2" placeholder="Write a product image description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Image Category</label>
+                        <select id="imageCategory">
+                            <option value="product">Product</option>
+                            <option value="post">Post</option>
+                            <option value="gallery">Gallery</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-success">Upload & Save Image</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideUploadImageForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Images Gallery -->
+            <div class="images-gallery" id="imagesGallery">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Orders Management Section -->
+        <section id="orders" class="section">
+            <div class="section-header">
+                <h1>Manage Requests</h1>
+            </div>
+            <div class="table-container">
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Estimate (KES)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="chats" class="section">
+            <div class="section-header">
+                <h1>Manage Chats</h1>
+                <button class="btn btn-secondary" type="button" onclick="loadChatsSection()">
+                    <i class="fas fa-rotate"></i> Refresh Chats
+                </button>
+            </div>
+            <div class="chat-admin-layout">
+                <div class="chat-thread-panel">
+                    <div id="adminChatThreads" class="admin-chat-thread-list"></div>
+                </div>
+                <div class="chat-conversation-panel">
+                    <div class="chat-conversation-header">
+                        <div>
+                            <h2 id="adminActiveChatTitle">Select a chat thread</h2>
+                            <p id="adminActiveChatMeta">Open a conversation to view order details and reply.</p>
+                        </div>
+                        <select id="adminChatStatus" onchange="updateAdminChatStatus(this.value)">
+                            <option value="Open">Open</option>
+                            <option value="Waiting">Waiting</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                    </div>
+                    <div id="adminChatMessages" class="admin-chat-messages empty">
+                        <p>Select a customer chat from the left.</p>
+                    </div>
+                    <form id="adminChatForm" class="admin-chat-form" onsubmit="sendAdminChatMessage(event)">
+                        <textarea id="adminChatReply" rows="4" placeholder="Write your reply to the customer."></textarea>
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-success">Send Reply</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Admin Footer -->
+    <footer class="admin-footer">
+        <p>&copy; 2026 Calxin Auto Mombasa Admin Panel</p>
+        <p>Designed by Purice Mwero, Hiram Ngatia, and Purine Mwero</p>
+    </footer>
+</div>
+
+<script src="catalog-api.js" defer></script>
+<script src="admin.js" defer></script>
+</body>
+</html>

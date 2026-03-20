@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Sign In - Calxin Auto Mombasa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <main class="auth-shell">
+        <section class="auth-showcase">
+            <a class="brand-link" href="index.html">
+                <span class="brand-mark">CA</span>
+                <span>Calxin Auto Mombasa</span>
+            </a>
+            <p class="eyebrow">Secure customer access</p>
+            <h1>Sign in to request parts and talk to our team live.</h1>
+            <p class="lead">
+                No online payment is shown on the website. After sign in, you can send your request list,
+                continue with live chat, or confirm directly on WhatsApp.
+            </p>
+            <div class="showcase-card">
+                <div class="showcase-row">
+                    <i class="fas fa-phone-volume"></i>
+                    <div>
+                        <strong>Call Us</strong>
+                        <span>0706 931802</span>
+                    </div>
+                </div>
+                <div class="showcase-row">
+                    <i class="fab fa-whatsapp"></i>
+                    <div>
+                        <strong>WhatsApp Support</strong>
+                        <span>Fast stock and pricing replies</span>
+                    </div>
+                </div>
+                <div class="showcase-row">
+                    <i class="fas fa-comments"></i>
+                    <div>
+                        <strong>Live Chat</strong>
+                        <span>Admin can reply to each order request</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="auth-panel">
+            <div class="panel-top">
+                <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to website</a>
+                <button id="requestCenterShortcut" class="support-tag support-tag-button" type="button">
+                    Spare parts request center
+                </button>
+            </div>
+
+            <div id="authFeedback" class="auth-feedback" aria-live="polite"></div>
+
+            <div id="accountPanel" class="account-panel" data-auth-only style="display: none;">
+                <h2>Welcome back, <span data-customer-name>Customer</span></h2>
+                <p>Your account is active. You can open your request list or continue chatting with Calxin Auto support.</p>
+                <div class="account-actions">
+                    <a href="cart.html" class="btn btn-primary">Open Request List</a>
+                    <a href="chat.html" class="btn btn-secondary">Open Live Chat</a>
+                </div>
+                <button id="logoutBtn" class="btn btn-ghost" type="button">Sign Out</button>
+            </div>
+
+            <div id="authSection" data-guest-only>
+                <div class="tab-switcher">
+                    <button type="button" class="tab-btn active" data-view="login">Sign In</button>
+                    <button type="button" class="tab-btn" data-view="signup">Create Account</button>
+                </div>
+
+                <form id="loginForm" class="auth-form">
+                    <h2>Customer Sign In</h2>
+                    <p>Use your account to send order requests and continue in live chat.</p>
+
+                    <label for="loginEmail">Email address</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com" required>
+
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+
+                    <button class="btn btn-primary" type="submit">Sign In</button>
+                </form>
+
+                <form id="signupForm" class="auth-form hidden">
+                    <h2>Create Customer Account</h2>
+                    <p>Create an account so every part request opens a direct chat with the admin team.</p>
+
+                    <label for="signupName">Full name</label>
+                    <input type="text" id="signupName" placeholder="Your full name" required>
+
+                    <label for="signupEmail">Email address</label>
+                    <input type="email" id="signupEmail" placeholder="you@example.com" required>
+
+                    <label for="signupPhone">Phone number</label>
+                    <input type="tel" id="signupPhone" placeholder="0706 931802" required>
+
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" placeholder="At least 6 characters" minlength="6" required>
+
+                    <button class="btn btn-primary" type="submit">Create Account</button>
+                </form>
+
+                <div class="admin-access-card">
+                    <strong>Admin access</strong>
+                    <p>Store management uses a separate protected login.</p>
+                    <a href="admin-login.html" class="btn btn-secondary">Open Admin Login</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="customer-session.js"></script>
+    <script src="catalog-api.js"></script>
+    <script src="login.js"></script>
+</body>
+</html>

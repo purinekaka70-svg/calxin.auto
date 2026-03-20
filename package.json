@@ -1,6 +1,16 @@
 {
-  "devDependencies": {
-    "jest": "^30.3.0",
-    "jest-environment-jsdom": "^30.3.0"
+  "name": "calxin-auto",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calxin Auto storefront and admin with MySQL-backed catalog management.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check sitemap-data.js && node --check cart-icon.js && node --check admin.js && node --check admin-login.js && node --check project12.js && node --check product-view.js && node --check catalog-api.js && node --check cart.js && node --check chat.js && node --check login.js && node --check customer-session.js && node --check contact.js && node --check about.js && node --check wishlist.js && node --check service-worker.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "mysql2": "^3.14.1"
   }
 }
