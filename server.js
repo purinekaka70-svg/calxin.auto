@@ -3115,6 +3115,10 @@ app.get("/admin-login", (req, res) => {
     res.redirect(302, "/admin-login.html");
 });
 
+app.get("/admin-login.htm", (req, res) => {
+    res.redirect(302, "/admin-login.html");
+});
+
 app.get("/admin.html", (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     if (!getAuthenticatedAdmin(req)) {
@@ -3125,6 +3129,10 @@ app.get("/admin.html", (req, res) => {
 });
 
 app.get("/admin", (req, res) => {
+    res.redirect(302, "/admin.html");
+});
+
+app.get("/admin.htm", (req, res) => {
     res.redirect(302, "/admin.html");
 });
 
@@ -3175,6 +3183,20 @@ app.get("*", (req, res, next) => {
 
     const filePath = resolvePublicFile(req.path);
     if (filePath) {
+        const isNoStoreAsset = [
+            "service-worker.js",
+            "catalog-api.js",
+            "admin.js",
+            "admin-login.js",
+            "admin.html",
+            "admin-login.html"
+        ].some((fileName) => filePath.endsWith(fileName));
+
+        if (isNoStoreAsset) {
+            res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        } else if (filePath.endsWith(".js") || filePath.endsWith(".html") || filePath.endsWith(".css")) {
+            res.setHeader("Cache-Control", "no-cache");
+        }
         return res.sendFile(filePath);
     }
 

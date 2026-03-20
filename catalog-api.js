@@ -93,6 +93,44 @@
         };
     }
 
+    function readLegacyAdminCredentials() {
+        if (!global.document) return null;
+
+        const usernameInput = global.document.getElementById("adminUsername");
+        const passwordInput = global.document.getElementById("adminPassword");
+
+        if (!usernameInput && !passwordInput) {
+            return null;
+        }
+
+        return {
+            username: usernameInput ? String(usernameInput.value || "").trim() : "",
+            password: passwordInput ? String(passwordInput.value || "") : ""
+        };
+    }
+
+    function buildPublicApi(target) {
+        const publicApi = { ...target };
+
+        Object.keys(target).forEach((key) => {
+            if (typeof target[key] !== "function") {
+                return;
+            }
+
+            const legacyKey = key.toLowerCase();
+            if (legacyKey === key || Object.prototype.hasOwnProperty.call(publicApi, legacyKey)) {
+                return;
+            }
+
+            publicApi[legacyKey] = (...args) => target[key](...args);
+        });
+
+        // Keep older cached admin pages working if they still call calxinapi.adminlogin().
+        publicApi.adminlogin = (credentials) => target.adminLogin(credentials || readLegacyAdminCredentials() || {});
+
+        return publicApi;
+    }
+
     const api = {
         apiOrigin,
         apiBaseUrl,
@@ -268,5 +306,7 @@
         }
     };
 
-    global.CalxinApi = api;
+    const publicApi = buildPublicApi(api);
+    global.CalxinApi = publicApi;
+    global.calxinapi = publicApi;
 })(window);

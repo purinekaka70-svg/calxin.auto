@@ -17,11 +17,36 @@ function showAdminAuthFeedback(message, type) {
     }
 }
 
+function getAdminApiClient() {
+    const candidates = [window.CalxinApi, window.calxinapi];
+
+    for (const candidate of candidates) {
+        if (!candidate) {
+            continue;
+        }
+
+        const adminLogin = candidate.adminLogin || candidate.adminlogin;
+        const getAdminSession = candidate.getAdminSession || candidate.getadminsession;
+
+        if (typeof adminLogin === "function") {
+            return {
+                ...candidate,
+                adminLogin,
+                getAdminSession
+            };
+        }
+    }
+
+    throw new Error("Admin API client is not loaded. Please refresh the page.");
+}
+
 async function submitAdminLogin(event) {
     event.preventDefault();
 
     try {
-        await window.CalxinApi.adminLogin({
+        const api = getAdminApiClient();
+
+        await api.adminLogin({
             username: document.getElementById("adminUsername").value.trim(),
             password: document.getElementById("adminPassword").value
         });
@@ -39,8 +64,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-        await window.CalxinApi.getAdminSession();
-        window.location.href = getAdminNextUrl();
+        const api = getAdminApiClient();
+        if (typeof api.getAdminSession === "function") {
+            await api.getAdminSession();
+            window.location.href = getAdminNextUrl();
+        }
     } catch (error) {
         // Ignore unauthenticated state and keep the login form visible.
     }

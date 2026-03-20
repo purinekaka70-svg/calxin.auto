@@ -35,10 +35,15 @@ const adminState = {
 };
 
 function getAdminApi() {
-    if (!window.CalxinApi) {
-        throw new Error("Catalog API client is not available.");
+    const candidates = [window.CalxinApi, window.calxinapi];
+
+    for (const candidate of candidates) {
+        if (candidate) {
+            return candidate;
+        }
     }
-    return window.CalxinApi;
+
+    throw new Error("Catalog API client is not available.");
 }
 
 function redirectToAdminLogin() {
@@ -879,9 +884,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
         const api = getAdminApi();
-        await api.getAdminSession();
-        await refreshAllData();
-        showStatus("Admin data loaded.", "success");
+        if (typeof api.getAdminSession === "function") {
+            await api.getAdminSession();
+            await refreshAllData();
+            showStatus("Admin data loaded.", "success");
+        } else {
+            throw new Error("Calxin API client not loaded for admin dashboard. Please refresh.");
+        }
     } catch (error) {
         handleAdminError(error, "Unable to load admin data.");
     }

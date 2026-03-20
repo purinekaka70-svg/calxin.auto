@@ -323,9 +323,23 @@ function setupProgressiveWebApp() {
     }
 
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("service-worker.js").catch((error) => {
-            console.error("Service worker registration failed:", error);
-        });
+        navigator.serviceWorker.getRegistrations()
+            .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+            .catch((error) => {
+                console.error("Service worker cleanup failed:", error);
+            });
+    }
+
+    if ("caches" in window) {
+        window.caches.keys()
+            .then((keys) => Promise.all(
+                keys
+                    .filter((key) => key.indexOf("calxin-auto") === 0)
+                    .map((key) => window.caches.delete(key))
+            ))
+            .catch((error) => {
+                console.error("Cache cleanup failed:", error);
+            });
     }
 }
 
