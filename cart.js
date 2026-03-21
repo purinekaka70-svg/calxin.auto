@@ -2,6 +2,13 @@ const REQUEST_STORAGE_KEY = "cart";
 const REQUEST_FALLBACK_IMAGE = encodeURI("calxin.images/WhatsApp Image 2026-01-23 at 4.58.19 PM.jpeg");
 const OWNER_WHATSAPP_NUMBER = "254706931802";
 const REQUEST_CONTACT_KEY = "calxinRequestContact";
+const CATALOG_SYNC_EVENT_KEY = "calxinCatalogUpdatedAt";
+const CATALOG_SYNC_CHANNEL = "calxin-catalog";
+const REQUEST_SYNC_INTERVAL_MS = 10000;
+let requestSyncPromise = null;
+let lastRequestSyncAt = 0;
+let requestSyncChannel = null;
+let cartRealtimeSource = null;
 
 function getStoredJson(key, fallback) {
     try {
@@ -13,6 +20,9 @@ function getStoredJson(key, fallback) {
 
 function setStoredJson(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+    if (key === REQUEST_STORAGE_KEY) {
+        window.dispatchEvent(new Event("calxin-cart-updated"));
+    }
 }
 
 function getStoredContact() {
@@ -68,6 +78,90 @@ function setRequestItems(items) {
             image: resolveImagePath(item.image)
         };
     }));
+}
+
+function buildRequestItem(product, quantity) {
+    const normalizedQuantity = Math.max(1, Number(quantity || 1));
+    return {
+        id: Number(product.id),
+        productId: Number(product.id),
+        name: product.name || "Product",
+        price: Number(product.price || 0),
+        quantity: normalizedQuantity,
+        qty: normalizedQuantity,
+        image: resolveImagePath(product.image),
+        category: product.category || "General",
+        stock: Number(product.stock || 0)
+    };
+}
+
+function getRequestSignature(items) {
+    return JSON.stringify(
+        items.map((item) => ({
+            id: Number(item.id ?? item.productId ?? 0),
+            productId: Number(item.productId ?? item.id ?? 0),
+            name: item.name || "Product",
+            price: Number(item.price || 0),
+            quantity: Math.max(1, Number(item.quantity || item.qty || 1)),
+            image: resolveImagePath(item.image),
+            category: item.category || "General",
+            stock: Number(item.stock || 0)
+        }))
+    );
+}
+
+async function syncRequestItemsWithCatalog(force = false) {
+    if (requestSyncPromise) {
+        return requestSyncPromise;
+    }
+
+    if (!window.CalxinApi) {
+        return false;
+    }
+
+    if (!force && Date.now() - lastRequestSyncAt < REQUEST_SYNC_INTERVAL_MS) {
+        return false;
+    }
+
+    const currentItems = getRequestItems();
+    if (!currentItems.length) {
+        lastRequestSyncAt = Date.now();
+        return false;
+    }
+
+    const requestPromise = (async () => {
+        const products = await window.CalxinApi.getProducts({ published: true });
+        const productMap = new Map(products.map((product) => [Number(product.id), product]));
+        const syncedItems = currentItems
+            .map((item) => {
+                const product = productMap.get(Number(item.productId || item.id));
+                if (!product) {
+                    return null;
+                }
+
+                return buildRequestItem(product, item.quantity || item.qty || 1);
+            })
+            .filter(Boolean);
+
+        lastRequestSyncAt = Date.now();
+
+        if (getRequestSignature(currentItems) !== getRequestSignature(syncedItems)) {
+            setRequestItems(syncedItems);
+            return true;
+        }
+
+        return false;
+    })();
+
+    requestSyncPromise = requestPromise;
+
+    try {
+        return await requestPromise;
+    } finally {
+        if (requestSyncPromise === requestPromise) {
+            requestSyncPromise = null;
+        }
+    }
 }
 
 function toggleMobileMenu() {
@@ -455,12 +549,82 @@ async function loadSuggestedProducts() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+async function refreshCartPage(force = false) {
+    try {
+        await syncRequestItemsWithCatalog(force);
+    } catch (error) {
+        console.error(error);
+    }
+
+    loadRequestList();
+    await loadSuggestedProducts();
+}
+
+function bindCatalogSync() {
+    const refresh = () => {
+        refreshCartPage(true).catch((error) => {
+            console.error(error);
+        });
+    };
+
+    window.addEventListener("focus", refresh);
+    window.addEventListener("pageshow", refresh);
+    window.addEventListener("storage", (event) => {
+        if (event.key === CATALOG_SYNC_EVENT_KEY || event.key === REQUEST_STORAGE_KEY) {
+            refresh();
+        }
+    });
+    window.addEventListener("calxin-catalog-updated", refresh);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            refresh();
+        }
+    });
+
+    if ("BroadcastChannel" in window) {
+        requestSyncChannel = new BroadcastChannel(CATALOG_SYNC_CHANNEL);
+        requestSyncChannel.addEventListener("message", refresh);
+    }
+}
+
+function bindRealtimeCart() {
+    if (!window.CalxinApi || typeof window.CalxinApi.subscribeToEvents !== "function") {
+        return;
+    }
+
+    if (cartRealtimeSource && typeof cartRealtimeSource.close === "function") {
+        cartRealtimeSource.close();
+    }
+
+    cartRealtimeSource = window.CalxinApi.subscribeToEvents(
+        {
+            topics: ["catalog"],
+            includeToken: false
+        },
+        {
+            onMessage(payload) {
+                if (!payload || payload.type === "ready") {
+                    return;
+                }
+
+                refreshCartPage(true).catch((error) => {
+                    console.error(error);
+                });
+            },
+            onError(error) {
+                console.error("Cart realtime connection issue:", error);
+            }
+        }
+    );
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
     window.CalxinSession.updateAuthUi();
     bindMenuEvents();
     fillContactInputs();
-    loadRequestList();
-    loadSuggestedProducts();
+    bindCatalogSync();
+    bindRealtimeCart();
+    await refreshCartPage(true);
 
     const inputs = getContactInputs();
     [inputs.name, inputs.phone, inputs.email].forEach((input) => {
@@ -477,3 +641,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
+
+window.addEventListener("beforeunload", () => {
+    if (cartRealtimeSource && typeof cartRealtimeSource.close === "function") {
+        cartRealtimeSource.close();
+    }
+});

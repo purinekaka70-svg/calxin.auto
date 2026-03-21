@@ -55,10 +55,14 @@ class HttpError extends Error {
 let dbPool = null;
 let dbRetryAfter = 0;
 let adminAuditTableReady = false;
+let realtimeClientId = 0;
+const realtimeClients = new Set();
 const localStore = createLocalStore({
     dataFile: LOCAL_STORE_FILE,
     persist: !process.env.VERCEL
 });
+
+const REALTIME_TOPICS = new Set(["catalog", "media", "orders", "chat"]);
 
 function buildDbConfig() {
     const host = String(process.env.MYSQL_HOST || "").trim();
@@ -115,6 +119,63 @@ async function getAvailableDbPool() {
         console.warn("MySQL unavailable. Falling back to local store.", error.message);
         return null;
     }
+}
+
+function parseRealtimeTopics(value) {
+    const requested = String(value || "")
+        .split(",")
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean)
+        .filter((item) => REALTIME_TOPICS.has(item));
+
+    if (requested.length) {
+        return new Set(requested);
+    }
+
+    return new Set(["catalog"]);
+}
+
+function shouldDeliverRealtimeEvent(client, event) {
+    const topic = String(event.topic || "").trim().toLowerCase();
+    if (!topic || !client.topics.has(topic)) {
+        return false;
+    }
+
+    if (event.adminOnly && !client.isAdmin) {
+        return false;
+    }
+
+    if (!client.isAdmin && (event.customerId !== null && event.customerId !== undefined)) {
+        if (!client.customerId || Number(client.customerId) !== Number(event.customerId)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function writeRealtimeEvent(client, event) {
+    const payload = {
+        ...event,
+        sentAt: new Date().toISOString()
+    };
+
+    client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function broadcastRealtimeEvent(event) {
+    realtimeClients.forEach((client) => {
+        if (!shouldDeliverRealtimeEvent(client, event)) {
+            return;
+        }
+
+        try {
+            writeRealtimeEvent(client, event);
+        } catch (error) {
+            clearInterval(client.heartbeatTimer);
+            realtimeClients.delete(client);
+        }
+    });
 }
 
 function asyncHandler(handler) {
@@ -180,6 +241,10 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: JSON_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: JSON_LIMIT }));
 app.use("/uploads", express.static(UPLOADS_DIR));
+app.use("/api", (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    next();
+});
 
 function ensureUploadsDirectories() {
     if (process.env.VERCEL) return; // Skip on Vercel (Read-only file system)
@@ -827,6 +892,10 @@ function buildOrderChatMessage(orderId, items, total, note = "") {
 
 async function getAuthenticatedCustomer(req, pool) {
     const token = readAuthToken(req);
+    return getCustomerBySessionToken(token, pool);
+}
+
+async function getCustomerBySessionToken(token, pool) {
     if (!token) return null;
 
     if (!pool) {
@@ -851,6 +920,11 @@ async function getAuthenticatedCustomer(req, pool) {
     );
 
     return rows[0] || null;
+}
+
+async function getAuthenticatedRealtimeCustomer(req, pool) {
+    const queryToken = String(req.query.token || "").trim();
+    return getCustomerBySessionToken(queryToken || readAuthToken(req), pool);
 }
 
 async function listOrdersFromDb(pool, customerId = null) {
@@ -1170,7 +1244,8 @@ app.get(
         if (!pool) {
             res.json({
                 ok: true,
-                message: "Local catalog store is active. MySQL is not configured."
+                storage: "local",
+                message: "Local catalog store is active."
             });
             return;
         }
@@ -1178,6 +1253,7 @@ app.get(
         await pool.query("SELECT 1");
         res.json({
             ok: true,
+            storage: "mysql",
             message: "MySQL connection is healthy."
         });
     })
@@ -1266,6 +1342,70 @@ app.post(
         res.json({ ok: true });
     })
 );
+
+app.get("/api/events", async (req, res, next) => {
+    try {
+        const topics = parseRealtimeTopics(req.query.topics);
+        const adminView = String(req.query.admin || "") === "1";
+        const pool = await getAvailableDbPool();
+        const admin = adminView ? requireAdmin(req) : null;
+        const needsAdminAuth = !admin && [...topics].some((topic) => topic === "media");
+        const needsCustomerAuth = !admin && [...topics].some((topic) => topic === "orders" || topic === "chat");
+
+        if (needsAdminAuth) {
+            throw new HttpError(401, "Admin sign-in required.");
+        }
+
+        const customer = needsCustomerAuth
+            ? await getAuthenticatedRealtimeCustomer(req, pool)
+            : null;
+
+        if (needsCustomerAuth && !customer) {
+            throw new HttpError(401, "Please sign in to receive realtime updates.");
+        }
+
+        res.status(200);
+        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no");
+
+        if (typeof res.flushHeaders === "function") {
+            res.flushHeaders();
+        }
+
+        res.write("retry: 3000\n\n");
+
+        const client = {
+            id: ++realtimeClientId,
+            res,
+            topics,
+            isAdmin: Boolean(admin),
+            customerId: customer ? Number(customer.id) : null,
+            heartbeatTimer: null
+        };
+
+        client.heartbeatTimer = setInterval(() => {
+            res.write(`: keepalive ${Date.now()}\n\n`);
+        }, 25000);
+
+        realtimeClients.add(client);
+        writeRealtimeEvent(client, {
+            topic: "system",
+            type: "ready",
+            admin: client.isAdmin,
+            customerId: client.customerId
+        });
+
+        req.on("close", () => {
+            clearInterval(client.heartbeatTimer);
+            realtimeClients.delete(client);
+            res.end();
+        });
+    } catch (error) {
+        next(error);
+    }
+});
 
 app.get(
     "/api/products",
@@ -1423,6 +1563,21 @@ app.post(
                     published: normalizedItem.published
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "product.created",
+                resource: "product",
+                action: "created",
+                itemId: normalizedItem.id
+            });
+            if (finalImageUrl) {
+                broadcastRealtimeEvent({
+                    topic: "media",
+                    type: "media.changed",
+                    resource: "media",
+                    action: "created"
+                });
+            }
             res.status(201).json({ item: normalizedItem });
             return;
         }
@@ -1507,6 +1662,21 @@ app.post(
                     published: normalizedItem.published
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "product.created",
+                resource: "product",
+                action: "created",
+                itemId: normalizedItem.id
+            });
+            if (finalImageUrl) {
+                broadcastRealtimeEvent({
+                    topic: "media",
+                    type: "media.changed",
+                    resource: "media",
+                    action: "created"
+                });
+            }
             res.status(201).json({ item: normalizedItem });
         } finally {
             connection.release();
@@ -1575,6 +1745,21 @@ app.put(
                     published: normalizedItem.published
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "product.updated",
+                resource: "product",
+                action: "updated",
+                itemId: normalizedItem.id
+            });
+            if (payload.imageDataUrl) {
+                broadcastRealtimeEvent({
+                    topic: "media",
+                    type: "media.changed",
+                    resource: "media",
+                    action: "created"
+                });
+            }
             res.json({ item: normalizedItem });
             return;
         }
@@ -1676,6 +1861,21 @@ app.put(
                     published: normalizedItem.published
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "product.updated",
+                resource: "product",
+                action: "updated",
+                itemId: normalizedItem.id
+            });
+            if (payload.imageDataUrl) {
+                broadcastRealtimeEvent({
+                    topic: "media",
+                    type: "media.changed",
+                    resource: "media",
+                    action: "created"
+                });
+            }
             res.json({ item: normalizedItem });
         } finally {
             connection.release();
@@ -1706,6 +1906,19 @@ app.delete(
                 targetType: "product",
                 targetId: productId
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "product.deleted",
+                resource: "product",
+                action: "deleted",
+                itemId: productId
+            });
+            broadcastRealtimeEvent({
+                topic: "media",
+                type: "media.changed",
+                resource: "media",
+                action: "deleted"
+            });
             res.json({ ok: true });
             return;
         }
@@ -1723,6 +1936,19 @@ app.delete(
             action: "product.delete",
             targetType: "product",
             targetId: productId
+        });
+        broadcastRealtimeEvent({
+            topic: "catalog",
+            type: "product.deleted",
+            resource: "product",
+            action: "deleted",
+            itemId: productId
+        });
+        broadcastRealtimeEvent({
+            topic: "media",
+            type: "media.changed",
+            resource: "media",
+            action: "deleted"
         });
         res.json({ ok: true });
     })
@@ -1816,6 +2042,21 @@ app.post(
                     published: normalizedItem.published
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "post.created",
+                resource: "post",
+                action: "created",
+                itemId: normalizedItem.id
+            });
+            if (finalImageUrl) {
+                broadcastRealtimeEvent({
+                    topic: "media",
+                    type: "media.changed",
+                    resource: "media",
+                    action: "created"
+                });
+            }
             res.status(201).json({ item: normalizedItem });
             return;
         }
@@ -1891,6 +2132,21 @@ app.post(
                     published: normalizedItem.published
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "post.created",
+                resource: "post",
+                action: "created",
+                itemId: normalizedItem.id
+            });
+            if (finalImageUrl) {
+                broadcastRealtimeEvent({
+                    topic: "media",
+                    type: "media.changed",
+                    resource: "media",
+                    action: "created"
+                });
+            }
             res.status(201).json({ item: normalizedItem });
         } finally {
             connection.release();
@@ -1956,6 +2212,21 @@ app.put(
                     published: normalizedItem.published
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "post.updated",
+                resource: "post",
+                action: "updated",
+                itemId: normalizedItem.id
+            });
+            if (payload.imageDataUrl) {
+                broadcastRealtimeEvent({
+                    topic: "media",
+                    type: "media.changed",
+                    resource: "media",
+                    action: "created"
+                });
+            }
             res.json({ item: normalizedItem });
             return;
         }
@@ -2048,6 +2319,21 @@ app.put(
                     published: normalizedItem.published
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "post.updated",
+                resource: "post",
+                action: "updated",
+                itemId: normalizedItem.id
+            });
+            if (payload.imageDataUrl) {
+                broadcastRealtimeEvent({
+                    topic: "media",
+                    type: "media.changed",
+                    resource: "media",
+                    action: "created"
+                });
+            }
             res.json({ item: normalizedItem });
         } finally {
             connection.release();
@@ -2078,6 +2364,19 @@ app.delete(
                 targetType: "post",
                 targetId: postId
             });
+            broadcastRealtimeEvent({
+                topic: "catalog",
+                type: "post.deleted",
+                resource: "post",
+                action: "deleted",
+                itemId: postId
+            });
+            broadcastRealtimeEvent({
+                topic: "media",
+                type: "media.changed",
+                resource: "media",
+                action: "deleted"
+            });
             res.json({ ok: true });
             return;
         }
@@ -2095,6 +2394,19 @@ app.delete(
             action: "post.delete",
             targetType: "post",
             targetId: postId
+        });
+        broadcastRealtimeEvent({
+            topic: "catalog",
+            type: "post.deleted",
+            resource: "post",
+            action: "deleted",
+            itemId: postId
+        });
+        broadcastRealtimeEvent({
+            topic: "media",
+            type: "media.changed",
+            resource: "media",
+            action: "deleted"
         });
         res.json({ ok: true });
     })
@@ -2167,6 +2479,13 @@ app.post(
                     category: normalizedItem.category
                 }
             });
+            broadcastRealtimeEvent({
+                topic: "media",
+                type: "media.created",
+                resource: "media",
+                action: "created",
+                itemId: normalizedItem.id
+            });
             res.status(201).json({ item: normalizedItem });
             return;
         }
@@ -2222,6 +2541,13 @@ app.post(
                 category: normalizedItem.category
             }
         });
+        broadcastRealtimeEvent({
+            topic: "media",
+            type: "media.created",
+            resource: "media",
+            action: "created",
+            itemId: normalizedItem.id
+        });
         res.status(201).json({ item: normalizedItem });
     })
 );
@@ -2270,6 +2596,13 @@ app.put(
                     name: normalizedItem.name,
                     category: normalizedItem.category
                 }
+            });
+            broadcastRealtimeEvent({
+                topic: "media",
+                type: "media.updated",
+                resource: "media",
+                action: "updated",
+                itemId: normalizedItem.id
             });
             res.json({ item: normalizedItem });
             return;
@@ -2342,6 +2675,13 @@ app.put(
                 category: normalizedItem.category
             }
         });
+        broadcastRealtimeEvent({
+            topic: "media",
+            type: "media.updated",
+            resource: "media",
+            action: "updated",
+            itemId: normalizedItem.id
+        });
         res.json({ item: normalizedItem });
     })
 );
@@ -2369,6 +2709,13 @@ app.delete(
                 targetType: "media",
                 targetId: mediaId
             });
+            broadcastRealtimeEvent({
+                topic: "media",
+                type: "media.deleted",
+                resource: "media",
+                action: "deleted",
+                itemId: mediaId
+            });
             res.json({ ok: true });
             return;
         }
@@ -2385,6 +2732,13 @@ app.delete(
             action: "media.delete",
             targetType: "media",
             targetId: mediaId
+        });
+        broadcastRealtimeEvent({
+            topic: "media",
+            type: "media.deleted",
+            resource: "media",
+            action: "deleted",
+            itemId: mediaId
         });
         res.json({ ok: true });
     })
@@ -2644,6 +2998,25 @@ app.post(
                 });
             }
 
+            broadcastRealtimeEvent({
+                topic: "orders",
+                type: "order.created",
+                resource: "order",
+                action: "created",
+                orderId: Number(order.id),
+                customerId: customer ? Number(customer.id) : null
+            });
+            if (thread) {
+                broadcastRealtimeEvent({
+                    topic: "chat",
+                    type: "chat.thread.created",
+                    resource: "chat_thread",
+                    action: "created",
+                    threadId: Number(thread.id),
+                    orderId: Number(order.id),
+                    customerId: Number(thread.customerId || customer.id)
+                });
+            }
             res.status(201).json({
                 ok: true,
                 orderId: order.id,
@@ -2721,6 +3094,25 @@ app.post(
             }
 
             await connection.commit();
+            broadcastRealtimeEvent({
+                topic: "orders",
+                type: "order.created",
+                resource: "order",
+                action: "created",
+                orderId,
+                customerId: customer ? Number(customer.id) : null
+            });
+            if (threadId && customer) {
+                broadcastRealtimeEvent({
+                    topic: "chat",
+                    type: "chat.thread.created",
+                    resource: "chat_thread",
+                    action: "created",
+                    threadId,
+                    orderId,
+                    customerId: Number(customer.id)
+                });
+            }
             res.status(201).json({
                 ok: true,
                 orderId,
@@ -2753,6 +3145,14 @@ app.put("/api/orders/:id/status", asyncHandler(async (req, res) => {
             targetId: req.params.id,
             details: { status }
         });
+        broadcastRealtimeEvent({
+            topic: "orders",
+            type: "order.updated",
+            resource: "order",
+            action: "updated",
+            orderId: Number(req.params.id),
+            status
+        });
         res.json({ ok: true });
         return;
     }
@@ -2769,6 +3169,14 @@ app.put("/api/orders/:id/status", asyncHandler(async (req, res) => {
         targetType: "order",
         targetId: req.params.id,
         details: { status }
+    });
+    broadcastRealtimeEvent({
+        topic: "orders",
+        type: "order.updated",
+        resource: "order",
+        action: "updated",
+        orderId: Number(req.params.id),
+        status
     });
     res.json({ ok: true });
 }));
@@ -2821,6 +3229,15 @@ app.post(
                 initial_message: message
             });
 
+            broadcastRealtimeEvent({
+                topic: "chat",
+                type: "chat.thread.created",
+                resource: "chat_thread",
+                action: "created",
+                threadId: Number(thread.id),
+                orderId: thread.orderId ? Number(thread.orderId) : null,
+                customerId: Number(thread.customerId || customer.id)
+            });
             res.status(201).json({ item: normalizeChatThread(thread) });
             return;
         }
@@ -2852,6 +3269,15 @@ app.post(
             await connection.commit();
 
             const item = await getChatThreadFromDb(pool, threadResult.insertId);
+            broadcastRealtimeEvent({
+                topic: "chat",
+                type: "chat.thread.created",
+                resource: "chat_thread",
+                action: "created",
+                threadId: Number(item.id),
+                orderId: item.orderId ? Number(item.orderId) : null,
+                customerId: Number(item.customerId)
+            });
             res.status(201).json({ item });
         } catch (error) {
             await connection.rollback();
@@ -2961,6 +3387,15 @@ app.post(
                     }
                 });
             }
+            broadcastRealtimeEvent({
+                topic: "chat",
+                type: "chat.message.created",
+                resource: "chat_message",
+                action: "created",
+                threadId: Number(threadId),
+                customerId: Number(thread.customerId || thread.customer_id),
+                senderRole
+            });
             res.status(201).json({ item: normalizedItem });
             return;
         }
@@ -3002,6 +3437,15 @@ app.post(
                 }
             });
         }
+        broadcastRealtimeEvent({
+            topic: "chat",
+            type: "chat.message.created",
+            resource: "chat_message",
+            action: "created",
+            threadId: Number(threadId),
+            customerId: Number(thread.customerId),
+            senderRole
+        });
         res.status(201).json({ item: items[items.length - 1] });
     })
 );
@@ -3019,6 +3463,10 @@ app.put(
         const pool = await getAvailableDbPool();
 
         if (!pool) {
+            const existingThread = await localStore.getChatThread(threadId);
+            if (!existingThread) {
+                throw new HttpError(404, "Chat thread not found.");
+            }
             const updated = await localStore.updateChatThreadStatus(threadId, status);
             if (!updated) {
                 throw new HttpError(404, "Chat thread not found.");
@@ -3031,8 +3479,22 @@ app.put(
                 targetId: threadId,
                 details: { status }
             });
+            broadcastRealtimeEvent({
+                topic: "chat",
+                type: "chat.status.updated",
+                resource: "chat_thread",
+                action: "updated",
+                threadId,
+                customerId: Number(existingThread.customerId || existingThread.customer_id),
+                status
+            });
             res.json({ ok: true });
             return;
+        }
+
+        const thread = await getChatThreadFromDb(pool, threadId);
+        if (!thread) {
+            throw new HttpError(404, "Chat thread not found.");
         }
 
         const [result] = await pool.execute(
@@ -3051,6 +3513,15 @@ app.put(
             targetType: "chat_thread",
             targetId: threadId,
             details: { status }
+        });
+        broadcastRealtimeEvent({
+            topic: "chat",
+            type: "chat.status.updated",
+            resource: "chat_thread",
+            action: "updated",
+            threadId,
+            customerId: Number(thread.customerId),
+            status
         });
         res.json({ ok: true });
     })

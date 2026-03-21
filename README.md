@@ -41,5 +41,6 @@ The site will run on `http://localhost:3000` by default.
 
 ## Notes
 
-- If MySQL is not configured, the server falls back to a local JSON-backed catalog store so the site and admin still work.
+- If MySQL is not configured, the server falls back to a local JSON-backed catalog store that starts empty, so the admin can add only the products and posts you want.
+- API responses are served with `Cache-Control: no-store`, and legacy browser catalog keys are cleared on load to avoid stale posts or products reappearing.
 - To use the real backend, open the site through `http://localhost:3000`, not `file://`.

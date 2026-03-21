@@ -1,7 +1,9 @@
 const chatState = {
     threads: [],
     selectedThreadId: null,
-    pollTimer: null
+    pollTimer: null,
+    realtimeSource: null,
+    realtimeRefreshTimer: null
 };
 
 function showChatNotice(message, type) {
@@ -159,7 +161,59 @@ async function sendMessage(event) {
     }
 }
 
+function scheduleRealtimeChatRefresh() {
+    if (chatState.realtimeRefreshTimer) {
+        return;
+    }
+
+    chatState.realtimeRefreshTimer = window.setTimeout(async () => {
+        chatState.realtimeRefreshTimer = null;
+
+        try {
+            await loadThreads(chatState.selectedThreadId);
+        } catch (error) {
+            console.error("Chat realtime refresh failed:", error);
+        }
+    }, 150);
+}
+
+function bindRealtimeChat() {
+    const session = window.CalxinSession.getSession();
+    const token = session && session.token ? String(session.token) : "";
+
+    if (!token || !window.CalxinApi || typeof window.CalxinApi.subscribeToEvents !== "function") {
+        return;
+    }
+
+    if (chatState.realtimeSource && typeof chatState.realtimeSource.close === "function") {
+        chatState.realtimeSource.close();
+    }
+
+    chatState.realtimeSource = window.CalxinApi.subscribeToEvents(
+        {
+            topics: ["chat"],
+            token
+        },
+        {
+            onMessage(payload) {
+                if (!payload || payload.type === "ready") {
+                    return;
+                }
+
+                scheduleRealtimeChatRefresh();
+            },
+            onError(error) {
+                console.error("Chat realtime connection issue:", error);
+            }
+        }
+    );
+}
+
 function startPolling() {
+    if (chatState.realtimeSource) {
+        return;
+    }
+
     stopPolling();
     chatState.pollTimer = window.setInterval(async () => {
         try {
@@ -197,10 +251,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
         await loadThreads();
+        bindRealtimeChat();
         startPolling();
     } catch (error) {
         showChatNotice(error.message || "Unable to load your live chat.", "error");
     }
 });
 
-window.addEventListener("beforeunload", stopPolling);
+window.addEventListener("beforeunload", () => {
+    stopPolling();
+    if (chatState.realtimeSource && typeof chatState.realtimeSource.close === "function") {
+        chatState.realtimeSource.close();
+    }
+});

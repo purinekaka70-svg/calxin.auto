@@ -1,9 +1,17 @@
 const REQUEST_LIST_KEY = "cart";
 const PRODUCT_FALLBACK_IMAGE = encodeURI("calxin.images/WhatsApp Image 2026-01-23 at 4.58.19 PM.jpeg");
 const OWNER_WHATSAPP_NUMBER = "254706931802";
+const CATALOG_SYNC_EVENT_KEY = "calxinCatalogUpdatedAt";
+const CATALOG_SYNC_CHANNEL = "calxin-catalog";
+const PRODUCT_REFRESH_INTERVAL_MS = 10000;
 
 let currentProduct = null;
+let currentProductId = null;
 let quantity = 1;
+let productRefreshPromise = null;
+let lastProductRefreshAt = 0;
+let productSyncChannel = null;
+let productRealtimeSource = null;
 
 function getStoredJson(key, fallback) {
     try {
@@ -218,25 +226,115 @@ function viewProduct(productId) {
 
 async function initProductPage() {
     const params = new URLSearchParams(window.location.search);
-    const productId = Number(params.get("id"));
+    currentProductId = Number(params.get("id"));
 
-    if (!Number.isFinite(productId) || !window.CalxinApi) {
+    if (!Number.isFinite(currentProductId) || !window.CalxinApi) {
         window.location.href = "index.html";
         return;
     }
 
-    try {
-        currentProduct = await window.CalxinApi.getProduct(productId);
+    await refreshCurrentProduct(true);
+}
+
+async function refreshCurrentProduct(force = false) {
+    if (!window.CalxinApi || !Number.isFinite(currentProductId)) {
+        window.location.href = "index.html";
+        return null;
+    }
+
+    if (productRefreshPromise) {
+        return productRefreshPromise;
+    }
+
+    if (!force && currentProduct && Date.now() - lastProductRefreshAt < PRODUCT_REFRESH_INTERVAL_MS) {
+        return currentProduct;
+    }
+
+    const requestPromise = (async () => {
+        currentProduct = await window.CalxinApi.getProduct(currentProductId);
+        lastProductRefreshAt = Date.now();
         renderProductDetails();
         await renderRelatedProducts();
+        return currentProduct;
+    })();
+
+    productRefreshPromise = requestPromise;
+
+    try {
+        return await requestPromise;
     } catch (error) {
         console.error(error);
         window.location.href = "index.html";
+        return null;
+    } finally {
+        if (productRefreshPromise === requestPromise) {
+            productRefreshPromise = null;
+        }
     }
+}
+
+function bindCatalogSync() {
+    const refresh = () => {
+        refreshCurrentProduct(true).catch((error) => {
+            console.error(error);
+        });
+    };
+
+    window.addEventListener("focus", refresh);
+    window.addEventListener("pageshow", refresh);
+    window.addEventListener("storage", (event) => {
+        if (event.key === CATALOG_SYNC_EVENT_KEY) {
+            refresh();
+        }
+    });
+    window.addEventListener("calxin-catalog-updated", refresh);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            refresh();
+        }
+    });
+
+    if ("BroadcastChannel" in window) {
+        productSyncChannel = new BroadcastChannel(CATALOG_SYNC_CHANNEL);
+        productSyncChannel.addEventListener("message", refresh);
+    }
+}
+
+function bindRealtimeProduct() {
+    if (!window.CalxinApi || typeof window.CalxinApi.subscribeToEvents !== "function") {
+        return;
+    }
+
+    if (productRealtimeSource && typeof productRealtimeSource.close === "function") {
+        productRealtimeSource.close();
+    }
+
+    productRealtimeSource = window.CalxinApi.subscribeToEvents(
+        {
+            topics: ["catalog"],
+            includeToken: false
+        },
+        {
+            onMessage(payload) {
+                if (!payload || payload.type === "ready") {
+                    return;
+                }
+
+                refreshCurrentProduct(true).catch((error) => {
+                    console.error(error);
+                });
+            },
+            onError(error) {
+                console.error("Product realtime connection issue:", error);
+            }
+        }
+    );
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     window.CalxinSession.updateAuthUi();
+    bindCatalogSync();
+    bindRealtimeProduct();
 
     document.querySelectorAll(".side-menu .nav-menu a").forEach((link) => {
         link.addEventListener("click", () => {
@@ -265,3 +363,9 @@ window.increaseQuantity = increaseQuantity;
 window.decreaseQuantity = decreaseQuantity;
 window.addProductToRequest = addProductToRequest;
 window.openProductWhatsapp = openProductWhatsapp;
+
+window.addEventListener("beforeunload", () => {
+    if (productRealtimeSource && typeof productRealtimeSource.close === "function") {
+        productRealtimeSource.close();
+    }
+});

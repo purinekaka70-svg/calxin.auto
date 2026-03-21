@@ -22,6 +22,14 @@ const homeState = {
     searchTerm: ""
 };
 
+const CATALOG_SYNC_EVENT_KEY = "calxinCatalogUpdatedAt";
+const CATALOG_SYNC_CHANNEL = "calxin-catalog";
+const CATALOG_REFRESH_INTERVAL_MS = 10000;
+let catalogLoadPromise = null;
+let lastCatalogLoadAt = 0;
+let catalogSyncChannel = null;
+let catalogRealtimeSource = null;
+
 function getStoredJson(key, fallback) {
     try {
         return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
@@ -245,16 +253,33 @@ function renderProducts() {
     });
 }
 
-async function loadProducts() {
+async function loadProducts(force = false) {
     const container = document.querySelector(".products");
 
-    try {
+    if (catalogLoadPromise) {
+        return catalogLoadPromise;
+    }
+
+    if (!force && homeState.products.length && Date.now() - lastCatalogLoadAt < CATALOG_REFRESH_INTERVAL_MS) {
+        renderProducts();
+        return homeState.products;
+    }
+
+    const requestPromise = (async () => {
         if (!window.CalxinApi) {
             throw new Error("Catalog API client not loaded.");
         }
 
         homeState.products = await window.CalxinApi.getProducts({ published: true });
+        lastCatalogLoadAt = Date.now();
         renderProducts();
+        return homeState.products;
+    })();
+
+    catalogLoadPromise = requestPromise;
+
+    try {
+        return await requestPromise;
     } catch (error) {
         if (container) {
             container.innerHTML = `
@@ -264,6 +289,11 @@ async function loadProducts() {
             `;
         }
         console.error(error);
+        return [];
+    } finally {
+        if (catalogLoadPromise === requestPromise) {
+            catalogLoadPromise = null;
+        }
     }
 }
 
@@ -343,12 +373,78 @@ function setupProgressiveWebApp() {
     }
 }
 
+function bindCatalogSync() {
+    const refresh = () => {
+        loadProducts(true).catch((error) => {
+            console.error(error);
+        });
+    };
+
+    window.addEventListener("focus", refresh);
+    window.addEventListener("pageshow", refresh);
+    window.addEventListener("storage", (event) => {
+        if (event.key === CATALOG_SYNC_EVENT_KEY) {
+            refresh();
+        }
+    });
+    window.addEventListener("calxin-catalog-updated", refresh);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            refresh();
+        }
+    });
+
+    if ("BroadcastChannel" in window) {
+        catalogSyncChannel = new BroadcastChannel(CATALOG_SYNC_CHANNEL);
+        catalogSyncChannel.addEventListener("message", refresh);
+    }
+}
+
+function bindRealtimeCatalog() {
+    if (!window.CalxinApi || typeof window.CalxinApi.subscribeToEvents !== "function") {
+        return;
+    }
+
+    if (catalogRealtimeSource && typeof catalogRealtimeSource.close === "function") {
+        catalogRealtimeSource.close();
+    }
+
+    catalogRealtimeSource = window.CalxinApi.subscribeToEvents(
+        {
+            topics: ["catalog"],
+            includeToken: false
+        },
+        {
+            onMessage(payload) {
+                if (!payload || payload.type === "ready") {
+                    return;
+                }
+
+                loadProducts(true).catch((error) => {
+                    console.error(error);
+                });
+            },
+            onError(error) {
+                console.error("Catalog realtime connection issue:", error);
+            }
+        }
+    );
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     window.CalxinSession.updateAuthUi();
     setupProgressiveWebApp();
     bindSearch();
     bindMenuInteractions();
-    loadProducts();
+    bindCatalogSync();
+    bindRealtimeCatalog();
+    loadProducts(true);
 });
 
 window.toggleMenu = toggleMenu;
+
+window.addEventListener("beforeunload", () => {
+    if (catalogRealtimeSource && typeof catalogRealtimeSource.close === "function") {
+        catalogRealtimeSource.close();
+    }
+});

@@ -2,7 +2,6 @@ const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
-const { buildSeedData } = require("./seed-data.cjs");
 
 function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -51,8 +50,48 @@ function createToken() {
     return crypto.randomBytes(24).toString("hex");
 }
 
-function hydrateStore(store) {
-    const fallback = buildSeedData();
+function buildEmptyStore() {
+    return {
+        counters: {
+            products: 0,
+            posts: 0,
+            media_assets: 0,
+            admin_audit_logs: 0,
+            orders: 0,
+            order_items: 0,
+            customers: 0,
+            chat_threads: 0,
+            chat_messages: 0
+        },
+        products: [],
+        posts: [],
+        media_assets: [],
+        admin_audit_logs: [],
+        orders: [],
+        order_items: [],
+        customers: [],
+        chat_threads: [],
+        chat_messages: []
+    };
+}
+
+function resolveFallbackStore(seedData) {
+    const baseStore = seedData && typeof seedData === "object"
+        ? seedData
+        : buildEmptyStore();
+
+    return {
+        ...buildEmptyStore(),
+        ...clone(baseStore),
+        counters: {
+            ...buildEmptyStore().counters,
+            ...((baseStore && baseStore.counters) || {})
+        }
+    };
+}
+
+function hydrateStore(store, seedData) {
+    const fallback = resolveFallbackStore(seedData);
     const hydrated = store && typeof store === "object" ? store : {};
 
     hydrated.counters = {
@@ -120,6 +159,7 @@ function buildThreadView(store, thread) {
 function createLocalStore(options = {}) {
     const dataFile = String(options.dataFile || "");
     const persist = Boolean(options.persist && dataFile);
+    const seedData = resolveFallbackStore(options.seedData);
     let data = null;
     let loadingPromise = null;
 
@@ -137,17 +177,17 @@ function createLocalStore(options = {}) {
             if (persist && fs.existsSync(dataFile)) {
                 try {
                     const raw = await fsp.readFile(dataFile, "utf8");
-                    data = hydrateStore(JSON.parse(raw));
+                    data = hydrateStore(JSON.parse(raw), seedData);
                     await writeData();
                     return data;
                 } catch (error) {
-                    data = hydrateStore(buildSeedData());
+                    data = hydrateStore(seedData, seedData);
                     await writeData();
                     return data;
                 }
             }
 
-            data = hydrateStore(buildSeedData());
+            data = hydrateStore(seedData, seedData);
             await writeData();
             return data;
         })();

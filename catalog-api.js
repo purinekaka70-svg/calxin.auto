@@ -8,6 +8,59 @@
             ? `${global.location.protocol}//${global.location.hostname}:3000`
             : global.location.origin;
     const apiBaseUrl = `${apiOrigin.replace(/\/+$/, "")}/api`;
+    const LEGACY_CATALOG_STORAGE_KEYS = [
+        "products",
+        "posts",
+        "images",
+        "uploadedImages",
+        "adminProducts",
+        "adminPosts",
+        "adminImages",
+        "calxinProducts",
+        "calxinPosts",
+        "calxinImages",
+        "catalogProducts",
+        "catalogPosts",
+        "catalogImages",
+        "siteProducts",
+        "sitePosts",
+        "siteImages"
+    ];
+
+    function clearLegacyCatalogStorage() {
+        if (!global.localStorage) return;
+
+        LEGACY_CATALOG_STORAGE_KEYS.forEach((key) => {
+            try {
+                global.localStorage.removeItem(key);
+            } catch (error) {
+                // Ignore storage cleanup errors and continue loading the live API.
+            }
+        });
+    }
+
+    function cleanupLegacyOfflineCache() {
+        if (global.navigator && "serviceWorker" in global.navigator) {
+            global.navigator.serviceWorker.getRegistrations()
+                .then((registrations) => Promise.all(
+                    registrations.map((registration) => registration.unregister())
+                ))
+                .catch(() => null);
+        }
+
+        if ("caches" in global) {
+            global.caches.keys()
+                .then((keys) => Promise.all(
+                    keys
+                        .filter((key) => key.indexOf("calxin-auto") === 0)
+                        .map((key) => global.caches.delete(key))
+                ))
+                .catch(() => null);
+        }
+    }
+
+    clearLegacyCatalogStorage();
+    cleanupLegacyOfflineCache();
 
     function getStoredSession() {
         try {
@@ -47,6 +100,7 @@
 
         const response = await fetch(`${apiBaseUrl}${path}`, {
             ...options,
+            cache: "no-store",
             credentials: "same-origin",
             headers
         });
@@ -64,6 +118,65 @@
         }
 
         return payload;
+    }
+
+    function buildEventsUrl(params) {
+        const query = new URLSearchParams();
+
+        if (params && Array.isArray(params.topics) && params.topics.length) {
+            query.set("topics", params.topics.join(","));
+        }
+
+        if (params && params.admin) {
+            query.set("admin", "1");
+        }
+
+        const token = params && params.token ? String(params.token).trim() : getAuthToken();
+        if (token && params && params.includeToken !== false) {
+            query.set("token", token);
+        }
+
+        const suffix = query.toString() ? `?${query.toString()}` : "";
+        return `${apiBaseUrl}/events${suffix}`;
+    }
+
+    function subscribeToEvents(params, handlers = {}) {
+        if (typeof global.EventSource !== "function") {
+            return null;
+        }
+
+        const source = new global.EventSource(buildEventsUrl(params), { withCredentials: true });
+
+        source.onmessage = (event) => {
+            if (!event || !event.data) {
+                return;
+            }
+
+            try {
+                const payload = JSON.parse(event.data);
+                if (typeof handlers.onMessage === "function") {
+                    handlers.onMessage(payload);
+                }
+            } catch (error) {
+                if (typeof handlers.onError === "function") {
+                    handlers.onError(error);
+                }
+            }
+        };
+
+        source.onopen = () => {
+            if (typeof handlers.onOpen === "function") {
+                handlers.onOpen();
+            }
+        };
+
+        source.onerror = (error) => {
+            if (typeof handlers.onError === "function") {
+                handlers.onError(error);
+            }
+        };
+
+        return source;
     }
 
     function normalizeProduct(item) {
@@ -303,10 +416,12 @@
                 method: "PUT",
                 body: JSON.stringify({ status })
             });
-        }
+        },
+        subscribeToEvents
     };
 
     const publicApi = buildPublicApi(api);
+    publicApi.subscribetoevents = (...args) => subscribeToEvents(...args);
     global.CalxinApi = publicApi;
     global.calxinapi = publicApi;
 })(window);

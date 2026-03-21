@@ -34,6 +34,12 @@ const adminState = {
     chatPollTimer: null
 };
 
+const CATALOG_SYNC_EVENT_KEY = "calxinCatalogUpdatedAt";
+const CATALOG_SYNC_CHANNEL = "calxin-catalog";
+let catalogSyncChannel = null;
+let adminRealtimeSource = null;
+let adminRealtimeRefreshTimer = null;
+
 function getAdminApi() {
     const candidates = [window.CalxinApi, window.calxinapi];
 
@@ -75,6 +81,80 @@ function showStatus(message, type = "info") {
 
 function clearStatus() {
     showStatus("");
+}
+
+function notifyCatalogUpdated(scope = "catalog") {
+    const payload = {
+        scope,
+        updatedAt: new Date().toISOString()
+    };
+
+    try {
+        window.localStorage.setItem(CATALOG_SYNC_EVENT_KEY, JSON.stringify(payload));
+    } catch (error) {
+        // Ignore storage write failures and still try the other sync paths.
+    }
+
+    if ("BroadcastChannel" in window) {
+        catalogSyncChannel = catalogSyncChannel || new BroadcastChannel(CATALOG_SYNC_CHANNEL);
+        catalogSyncChannel.postMessage(payload);
+    }
+
+    window.dispatchEvent(new CustomEvent("calxin-catalog-updated", { detail: payload }));
+}
+
+function scheduleAdminRealtimeRefresh() {
+    if (adminRealtimeRefreshTimer) {
+        return;
+    }
+
+    adminRealtimeRefreshTimer = window.setTimeout(async () => {
+        adminRealtimeRefreshTimer = null;
+
+        try {
+            await refreshAllData();
+        } catch (error) {
+            console.error("Admin realtime refresh failed:", error);
+        }
+    }, 180);
+}
+
+function bindAdminRealtime() {
+    const api = getAdminApi();
+
+    if (adminRealtimeSource && typeof adminRealtimeSource.close === "function") {
+        adminRealtimeSource.close();
+    }
+
+    if (typeof api.subscribeToEvents !== "function") {
+        return;
+    }
+
+    adminRealtimeSource = api.subscribeToEvents(
+        {
+            admin: true,
+            includeToken: false,
+            topics: ["catalog", "media", "orders", "chat"]
+        },
+        {
+            onMessage(payload) {
+                if (!payload || payload.type === "ready") {
+                    return;
+                }
+
+                scheduleAdminRealtimeRefresh();
+            },
+            onError(error) {
+                console.error("Admin realtime connection issue:", error);
+            }
+        }
+    );
+}
+
+function getAdminBackendLabel(health) {
+    return health && health.storage === "mysql"
+        ? "MySQL backend"
+        : "local catalog backend";
 }
 
 function showSection(sectionId, navEl) {
@@ -238,6 +318,7 @@ async function saveProduct(event) {
         hideAddProductForm();
         await loadProductsTable();
         await loadImagesGallery();
+        notifyCatalogUpdated("products");
         showStatus(
             adminState.editingProductId ? "Product updated." : "Product created.",
             "success"
@@ -276,6 +357,7 @@ async function deleteProduct(id) {
         await api.deleteProduct(id);
         await loadProductsTable();
         await loadImagesGallery();
+        notifyCatalogUpdated("products");
         showStatus("Product deleted.", "success");
     } catch (error) {
         handleAdminError(error, "Unable to delete the product.");
@@ -360,6 +442,7 @@ async function savePost(event) {
         hideAddPostForm();
         await loadPostsTable();
         await loadImagesGallery();
+        notifyCatalogUpdated("posts");
         showStatus(
             adminState.editingPostId ? "Post updated." : "Post created.",
             "success"
@@ -395,6 +478,7 @@ async function deletePost(id) {
         await api.deletePost(id);
         await loadPostsTable();
         await loadImagesGallery();
+        notifyCatalogUpdated("posts");
         showStatus("Post deleted.", "success");
     } catch (error) {
         handleAdminError(error, "Unable to delete the post.");
@@ -783,6 +867,10 @@ async function updateAdminChatStatus(status) {
 }
 
 function startAdminChatPolling() {
+    if (adminRealtimeSource) {
+        return;
+    }
+
     stopAdminChatPolling();
 
     adminState.chatPollTimer = window.setInterval(async () => {
@@ -886,8 +974,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const api = getAdminApi();
         if (typeof api.getAdminSession === "function") {
             await api.getAdminSession();
+            const health = typeof api.getHealth === "function"
+                ? await api.getHealth().catch(() => null)
+                : null;
             await refreshAllData();
-            showStatus("Admin data loaded.", "success");
+            bindAdminRealtime();
+            showStatus(`Admin data loaded from ${getAdminBackendLabel(health)}.`, "success");
         } else {
             throw new Error("Calxin API client not loaded for admin dashboard. Please refresh.");
         }
@@ -919,4 +1011,9 @@ window.updateAdminChatStatus = updateAdminChatStatus;
 window.logoutAdmin = logoutAdmin;
 window.changeAdminPassword = changeAdminPassword;
 
-window.addEventListener("beforeunload", stopAdminChatPolling);
+window.addEventListener("beforeunload", () => {
+    stopAdminChatPolling();
+    if (adminRealtimeSource && typeof adminRealtimeSource.close === "function") {
+        adminRealtimeSource.close();
+    }
+});
