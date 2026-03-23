@@ -209,6 +209,56 @@ function populateCategories() {
 
 function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
+        if (!file) {
+            reject(new Error("No file selected."));
+            return;
+        }
+
+        const fileType = String(file.type || "").toLowerCase();
+        const shouldCompress = fileType.startsWith("image/") && Number(file.size || 0) > 450 * 1024;
+
+        if (shouldCompress && typeof URL !== "undefined") {
+            const objectUrl = URL.createObjectURL(file);
+            const image = new Image();
+
+            image.onload = () => {
+                try {
+                    const maxDimension = 1600;
+                    const width = image.naturalWidth || image.width || 1;
+                    const height = image.naturalHeight || image.height || 1;
+                    const scale = Math.min(1, maxDimension / Math.max(width, height));
+                    const canvas = document.createElement("canvas");
+                    canvas.width = Math.max(1, Math.round(width * scale));
+                    canvas.height = Math.max(1, Math.round(height * scale));
+
+                    const context = canvas.getContext("2d");
+                    if (!context) {
+                        throw new Error("Canvas is not available for image compression.");
+                    }
+
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                    const outputType = fileType === "image/png" ? "image/png" : "image/jpeg";
+                    const dataUrl = outputType === "image/png"
+                        ? canvas.toDataURL(outputType)
+                        : canvas.toDataURL(outputType, 0.82);
+
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(String(dataUrl || ""));
+                } catch (error) {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(new Error("Unable to process the selected image."));
+                }
+            };
+
+            image.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error("Unable to read the selected file."));
+            };
+
+            image.src = objectUrl;
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ""));
         reader.onerror = () => reject(new Error("Unable to read the selected file."));
@@ -623,7 +673,7 @@ function renderImagesGallery() {
         card.className = "image-card";
         card.innerHTML = `
             <div class="image-card-media">
-                <img src="${image.url}" alt="${image.name}" class="image-card-img">
+                <img src="${image.url}" alt="${image.name}" class="image-card-img" loading="lazy">
             </div>
             <div class="image-card-info">
                 <div class="image-card-name">${image.name}</div>
@@ -634,6 +684,12 @@ function renderImagesGallery() {
                 </div>
             </div>
         `;
+        const preview = card.querySelector("img");
+        if (preview) {
+            preview.onerror = function onError() {
+                this.src = encodeURI("calxin.images/WhatsApp Image 2026-01-23 at 4.58.19 PM.jpeg");
+            };
+        }
         gallery.appendChild(card);
     });
 }

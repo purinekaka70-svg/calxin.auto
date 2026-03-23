@@ -4,6 +4,8 @@ const OWNER_WHATSAPP_NUMBER = "254706931802";
 const CATALOG_SYNC_EVENT_KEY = "calxinCatalogUpdatedAt";
 const CATALOG_SYNC_CHANNEL = "calxin-catalog";
 const PRODUCT_REFRESH_INTERVAL_MS = 10000;
+const SELECTED_PRODUCT_KEY = "calxinSelectedProduct";
+const CATALOG_CACHE_KEY = "calxinPublishedCatalog";
 
 let currentProduct = null;
 let currentProductId = null;
@@ -18,6 +20,22 @@ function getStoredJson(key, fallback) {
         return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
     } catch (error) {
         return fallback;
+    }
+}
+
+function getSessionJson(key, fallback) {
+    try {
+        return JSON.parse(sessionStorage.getItem(key) || JSON.stringify(fallback));
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function setSessionJson(key, value) {
+    try {
+        sessionStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        // Ignore storage failures and keep the page functional.
     }
 }
 
@@ -121,40 +139,80 @@ async function renderRelatedProducts() {
 
     try {
         const products = await window.CalxinApi.getProducts({ published: true });
-        const related = products
-            .filter((product) =>
-                Number(product.id) !== Number(currentProduct.id)
-                && product.category === currentProduct.category
-            )
-            .slice(0, 4);
-
-        if (!related.length) {
-            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; padding: 2rem;">No related products found.</p>';
+        setSessionJson(CATALOG_CACHE_KEY, products);
+        renderRelatedProductsFromList(products);
+    } catch (error) {
+        const cachedProducts = getSessionJson(CATALOG_CACHE_KEY, []);
+        if (cachedProducts.length) {
+            renderRelatedProductsFromList(cachedProducts);
             return;
         }
-
-        container.innerHTML = "";
-        related.forEach((product) => {
-            const item = document.createElement("div");
-            item.className = "related-item";
-            item.innerHTML = `
-                <div class="related-item-image">
-                    <img src="${resolveProductImage(product.image)}" alt="${product.name}">
-                </div>
-                <div class="related-item-info">
-                    <h4>${product.name}</h4>
-                    <p class="related-item-price">KES ${Number(product.price || 0).toLocaleString()}</p>
-                </div>
-            `;
-            item.addEventListener("click", () => {
-                viewProduct(Number(product.id));
-            });
-            container.appendChild(item);
-        });
-    } catch (error) {
         container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; padding: 2rem;">Unable to load related products.</p>';
         console.error(error);
     }
+}
+
+function renderRelatedProductsFromList(products) {
+    const container = document.getElementById("relatedProducts");
+    if (!container || !currentProduct) return;
+
+    const related = (Array.isArray(products) ? products : [])
+        .filter((product) =>
+            Number(product.id) !== Number(currentProduct.id)
+            && product.category === currentProduct.category
+        )
+        .slice(0, 4);
+
+    if (!related.length) {
+        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; padding: 2rem;">No related products found.</p>';
+        return;
+    }
+
+    container.innerHTML = "";
+    related.forEach((product) => {
+        const item = document.createElement("div");
+        item.className = "related-item";
+        item.innerHTML = `
+            <div class="related-item-image">
+                <img src="${resolveProductImage(product.image)}" alt="${product.name}">
+            </div>
+            <div class="related-item-info">
+                <h4>${product.name}</h4>
+                <p class="related-item-price">KES ${Number(product.price || 0).toLocaleString()}</p>
+            </div>
+        `;
+        const image = item.querySelector("img");
+        if (image) {
+            image.loading = "lazy";
+            image.onerror = function onError() {
+                this.src = PRODUCT_FALLBACK_IMAGE;
+            };
+        }
+        item.addEventListener("click", () => {
+            viewProduct(Number(product.id));
+        });
+        container.appendChild(item);
+    });
+}
+
+function restoreProductSnapshot(productId) {
+    const selected = getSessionJson(SELECTED_PRODUCT_KEY, null);
+    if (selected && Number(selected.id) === Number(productId)) {
+        currentProduct = selected;
+    } else {
+        const catalog = getSessionJson(CATALOG_CACHE_KEY, []);
+        currentProduct = Array.isArray(catalog)
+            ? catalog.find((item) => Number(item.id) === Number(productId)) || null
+            : null;
+    }
+
+    if (!currentProduct) {
+        return false;
+    }
+
+    renderProductDetails();
+    renderRelatedProductsFromList(getSessionJson(CATALOG_CACHE_KEY, []));
+    return true;
 }
 
 function increaseQuantity() {
@@ -233,6 +291,7 @@ async function initProductPage() {
         return;
     }
 
+    restoreProductSnapshot(currentProductId);
     await refreshCurrentProduct(true);
 }
 
@@ -252,6 +311,7 @@ async function refreshCurrentProduct(force = false) {
 
     const requestPromise = (async () => {
         currentProduct = await window.CalxinApi.getProduct(currentProductId);
+        setSessionJson(SELECTED_PRODUCT_KEY, currentProduct);
         lastProductRefreshAt = Date.now();
         renderProductDetails();
         await renderRelatedProducts();
@@ -264,7 +324,9 @@ async function refreshCurrentProduct(force = false) {
         return await requestPromise;
     } catch (error) {
         console.error(error);
-        window.location.href = "index.html";
+        if (restoreProductSnapshot(currentProductId)) {
+            return currentProduct;
+        }
         return null;
     } finally {
         if (productRefreshPromise === requestPromise) {

@@ -1,5 +1,7 @@
 const REQUEST_KEY = "cart";
 const FALLBACK_IMAGE = encodeURI("calxin.images/WhatsApp Image 2026-01-23 at 4.58.19 PM.jpeg");
+const SELECTED_PRODUCT_KEY = "calxinSelectedProduct";
+const CATALOG_CACHE_KEY = "calxinPublishedCatalog";
 
 const MENU_CATEGORY_MAP = {
     "Engine Parts": "Engines",
@@ -41,6 +43,14 @@ function getStoredJson(key, fallback) {
 function setStoredJson(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
     window.dispatchEvent(new Event("calxin-cart-updated"));
+}
+
+function setSessionJson(key, value) {
+    try {
+        sessionStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        // Ignore storage failures and keep the page functional.
+    }
 }
 
 function resolveImage(value) {
@@ -147,6 +157,11 @@ function getFilteredProducts() {
 }
 
 function openProductDetails(productId) {
+    const selected = homeState.products.find((item) => Number(item.id) === Number(productId));
+    if (selected) {
+        setSessionJson(SELECTED_PRODUCT_KEY, selected);
+        setSessionJson(CATALOG_CACHE_KEY, homeState.products);
+    }
     window.location.href = `product-view.html?id=${productId}`;
 }
 
@@ -218,6 +233,14 @@ function createProductCard(product) {
     const imageWrapper = card.querySelector(".card-image-wrapper");
     const detailButton = card.querySelector(".home-add-btn");
     const requestButton = card.querySelector(".wishlist-heart-btn");
+    const image = card.querySelector("img");
+
+    if (image) {
+        image.loading = "lazy";
+        image.onerror = function onError() {
+            this.src = FALLBACK_IMAGE;
+        };
+    }
 
     imageWrapper.addEventListener("click", () => openProductDetails(product.id));
     detailButton.addEventListener("click", (event) => {
@@ -271,6 +294,7 @@ async function loadProducts(force = false) {
         }
 
         homeState.products = await window.CalxinApi.getProducts({ published: true });
+        setSessionJson(CATALOG_CACHE_KEY, homeState.products);
         lastCatalogLoadAt = Date.now();
         renderProducts();
         return homeState.products;
