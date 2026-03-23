@@ -2,6 +2,11 @@
     const SESSION_KEY = "calxinCustomerSession";
     const LOCAL_CATALOG_KEY = "calxinCatalogSnapshotV2";
     const LOCAL_ADMIN_SESSION_KEY = "calxinAdminLocalSession";
+    const WINDOW_NAME_STORAGE_PREFIX = "__calxinStore__:";
+    const INDEXED_DB_NAME = "calxinBrowserCatalog";
+    const INDEXED_DB_STORE_NAME = "kv";
+    const inMemoryStorage = Object.create(null);
+    let indexedDbPromise = null;
     const isLocalHost = global.location
         && ["localhost", "127.0.0.1"].includes(global.location.hostname);
     const apiOrigin = global.location && global.location.protocol === "file:"
@@ -83,34 +88,215 @@
         }
     }
 
-    function safeGetLocalStorageItem(key) {
-        if (!global.localStorage) return null;
+    function safeReadStorageValue(storage, key) {
+        if (!storage) return null;
 
         try {
-            return global.localStorage.getItem(key);
+            return storage.getItem(key);
         } catch (error) {
             return null;
         }
     }
 
-    function safeSetLocalStorageItem(key, value) {
-        if (!global.localStorage) return;
+    function safeWriteStorageValue(storage, key, value) {
+        if (!storage) return false;
 
         try {
-            global.localStorage.setItem(key, value);
+            storage.setItem(key, value);
+            return true;
         } catch (error) {
-            // Ignore quota and browser privacy storage failures.
+            return false;
         }
     }
 
-    function safeRemoveLocalStorageItem(key) {
-        if (!global.localStorage) return;
+    function safeRemoveStorageValue(storage, key) {
+        if (!storage) return false;
 
         try {
-            global.localStorage.removeItem(key);
+            storage.removeItem(key);
+            return true;
         } catch (error) {
-            // Ignore removal failures.
+            return false;
         }
+    }
+
+    function readWindowNameStore() {
+        const raw = typeof global.name === "string" ? global.name : "";
+
+        if (!raw || raw.indexOf(WINDOW_NAME_STORAGE_PREFIX) !== 0) {
+            return {};
+        }
+
+        return safeParseJson(raw.slice(WINDOW_NAME_STORAGE_PREFIX.length), {});
+    }
+
+    function writeWindowNameStore(store) {
+        try {
+            global.name = `${WINDOW_NAME_STORAGE_PREFIX}${JSON.stringify(store || {})}`;
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function openIndexedDb() {
+        if (!global.indexedDB || typeof global.indexedDB.open !== "function") {
+            return Promise.resolve(null);
+        }
+
+        if (indexedDbPromise) {
+            return indexedDbPromise;
+        }
+
+        indexedDbPromise = new Promise((resolve) => {
+            try {
+                const request = global.indexedDB.open(INDEXED_DB_NAME, 1);
+
+                request.onupgradeneeded = () => {
+                    const db = request.result;
+                    if (!db.objectStoreNames.contains(INDEXED_DB_STORE_NAME)) {
+                        db.createObjectStore(INDEXED_DB_STORE_NAME);
+                    }
+                };
+
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => resolve(null);
+                request.onblocked = () => resolve(null);
+            } catch (error) {
+                resolve(null);
+            }
+        });
+
+        return indexedDbPromise;
+    }
+
+    async function readIndexedDbItem(key) {
+        const db = await openIndexedDb();
+        if (!db) {
+            return null;
+        }
+
+        return new Promise((resolve) => {
+            try {
+                const tx = db.transaction(INDEXED_DB_STORE_NAME, "readonly");
+                const store = tx.objectStore(INDEXED_DB_STORE_NAME);
+                const request = store.get(key);
+                request.onsuccess = () => {
+                    const value = request.result;
+                    resolve(value === undefined || value === null ? null : String(value));
+                };
+                request.onerror = () => resolve(null);
+            } catch (error) {
+                resolve(null);
+            }
+        });
+    }
+
+    async function writeIndexedDbItem(key, value) {
+        const db = await openIndexedDb();
+        if (!db) {
+            return false;
+        }
+
+        return new Promise((resolve) => {
+            try {
+                const tx = db.transaction(INDEXED_DB_STORE_NAME, "readwrite");
+                const store = tx.objectStore(INDEXED_DB_STORE_NAME);
+                store.put(String(value), key);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+                tx.onabort = () => resolve(false);
+            } catch (error) {
+                resolve(false);
+            }
+        });
+    }
+
+    async function removeIndexedDbItem(key) {
+        const db = await openIndexedDb();
+        if (!db) {
+            return false;
+        }
+
+        return new Promise((resolve) => {
+            try {
+                const tx = db.transaction(INDEXED_DB_STORE_NAME, "readwrite");
+                const store = tx.objectStore(INDEXED_DB_STORE_NAME);
+                store.delete(key);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+                tx.onabort = () => resolve(false);
+            } catch (error) {
+                resolve(false);
+            }
+        });
+    }
+
+    async function safeGetPersistentItem(key) {
+        const localValue = safeReadStorageValue(global.localStorage, key);
+        if (localValue !== null) {
+            inMemoryStorage[key] = String(localValue);
+            return localValue;
+        }
+
+        const sessionValue = safeReadStorageValue(global.sessionStorage, key);
+        if (sessionValue !== null) {
+            inMemoryStorage[key] = String(sessionValue);
+            return sessionValue;
+        }
+
+        const windowNameStore = readWindowNameStore();
+        if (Object.prototype.hasOwnProperty.call(windowNameStore, key)) {
+            inMemoryStorage[key] = String(windowNameStore[key]);
+            return String(windowNameStore[key]);
+        }
+
+        if (Object.prototype.hasOwnProperty.call(inMemoryStorage, key)) {
+            return String(inMemoryStorage[key]);
+        }
+
+        const indexedDbValue = await readIndexedDbItem(key);
+        if (indexedDbValue !== null) {
+            inMemoryStorage[key] = String(indexedDbValue);
+            return indexedDbValue;
+        }
+
+        return null;
+    }
+
+    async function safeSetPersistentItem(key, value) {
+        const nextValue = String(value);
+        inMemoryStorage[key] = nextValue;
+        let wroteSomewhere = false;
+
+        if (safeWriteStorageValue(global.localStorage, key, nextValue)) {
+            wroteSomewhere = true;
+        }
+
+        if (safeWriteStorageValue(global.sessionStorage, key, nextValue)) {
+            wroteSomewhere = true;
+        }
+
+        const windowNameStore = readWindowNameStore();
+        windowNameStore[key] = nextValue;
+        wroteSomewhere = writeWindowNameStore(windowNameStore) || wroteSomewhere;
+
+        const wroteIndexedDb = await writeIndexedDbItem(key, nextValue);
+        return wroteSomewhere || wroteIndexedDb;
+    }
+
+    async function safeRemovePersistentItem(key) {
+        delete inMemoryStorage[key];
+        safeRemoveStorageValue(global.localStorage, key);
+        safeRemoveStorageValue(global.sessionStorage, key);
+
+        const windowNameStore = readWindowNameStore();
+        if (Object.prototype.hasOwnProperty.call(windowNameStore, key)) {
+            delete windowNameStore[key];
+            writeWindowNameStore(windowNameStore);
+        }
+
+        await removeIndexedDbItem(key);
     }
 
     function createEmptyLocalCatalog() {
@@ -145,33 +331,33 @@
         };
     }
 
-    function readLocalCatalog() {
-        const parsed = safeParseJson(safeGetLocalStorageItem(LOCAL_CATALOG_KEY), createEmptyLocalCatalog());
+    async function readLocalCatalog() {
+        const parsed = safeParseJson(await safeGetPersistentItem(LOCAL_CATALOG_KEY), createEmptyLocalCatalog());
         return normalizeLocalCatalog(parsed);
     }
 
-    function writeLocalCatalog(catalog) {
+    async function writeLocalCatalog(catalog) {
         const nextCatalog = normalizeLocalCatalog(catalog);
         nextCatalog.updatedAt = currentTimestamp();
-        safeSetLocalStorageItem(LOCAL_CATALOG_KEY, JSON.stringify(nextCatalog));
+        await safeSetPersistentItem(LOCAL_CATALOG_KEY, JSON.stringify(nextCatalog));
         return nextCatalog;
     }
 
-    function mutateLocalCatalog(mutator) {
-        const catalog = readLocalCatalog();
-        const result = mutator(catalog);
-        writeLocalCatalog(catalog);
+    async function mutateLocalCatalog(mutator) {
+        const catalog = await readLocalCatalog();
+        const result = await mutator(catalog);
+        await writeLocalCatalog(catalog);
         return result;
     }
 
-    function readLocalAdminSession() {
-        const parsed = safeParseJson(safeGetLocalStorageItem(LOCAL_ADMIN_SESSION_KEY), null);
+    async function readLocalAdminSession() {
+        const parsed = safeParseJson(await safeGetPersistentItem(LOCAL_ADMIN_SESSION_KEY), null);
         return parsed && typeof parsed === "object" ? parsed : null;
     }
 
-    function writeLocalAdminSession(session) {
+    async function writeLocalAdminSession(session) {
         if (!session) {
-            safeRemoveLocalStorageItem(LOCAL_ADMIN_SESSION_KEY);
+            await safeRemovePersistentItem(LOCAL_ADMIN_SESSION_KEY);
             return null;
         }
 
@@ -181,7 +367,7 @@
             createdAt: session.createdAt || currentTimestamp()
         };
 
-        safeSetLocalStorageItem(LOCAL_ADMIN_SESSION_KEY, JSON.stringify(nextSession));
+        await safeSetPersistentItem(LOCAL_ADMIN_SESSION_KEY, JSON.stringify(nextSession));
         return nextSession;
     }
 
@@ -307,9 +493,9 @@
         catalog.media.push(mediaRecord);
     }
 
-    function listLocalProducts(params) {
+    async function listLocalProducts(params) {
         const query = String((params && params.q) || "").trim().toLowerCase();
-        let items = sortByUpdatedDesc(readLocalCatalog().products);
+        let items = sortByUpdatedDesc((await readLocalCatalog()).products);
 
         if (params && params.published !== undefined) {
             items = items.filter((item) => Boolean(item.published) === Boolean(params.published));
@@ -332,8 +518,8 @@
         return items.map(normalizeProduct);
     }
 
-    function getLocalProduct(id) {
-        const item = readLocalCatalog().products.find((product) => Number(product.id) === Number(id));
+    async function getLocalProduct(id) {
+        const item = (await readLocalCatalog()).products.find((product) => Number(product.id) === Number(id));
 
         if (!item) {
             const error = new Error("Product not found.");
@@ -344,10 +530,10 @@
         return normalizeProduct(item);
     }
 
-    function saveLocalProduct(product) {
+    async function saveLocalProduct(product) {
         let savedProduct = null;
 
-        mutateLocalCatalog((catalog) => {
+        await mutateLocalCatalog((catalog) => {
             const items = catalog.products;
             const existingIndex = items.findIndex((item) => Number(item.id) === Number(product && product.id));
             const existing = existingIndex >= 0 ? items[existingIndex] : null;
@@ -423,8 +609,8 @@
         });
     }
 
-    function listLocalPosts(params) {
-        let items = sortByUpdatedDesc(readLocalCatalog().posts);
+    async function listLocalPosts(params) {
+        let items = sortByUpdatedDesc((await readLocalCatalog()).posts);
 
         if (params && params.published !== undefined) {
             items = items.filter((item) => Boolean(item.published) === Boolean(params.published));
@@ -433,10 +619,10 @@
         return items.map(normalizePost);
     }
 
-    function saveLocalPost(post) {
+    async function saveLocalPost(post) {
         let savedPost = null;
 
-        mutateLocalCatalog((catalog) => {
+        await mutateLocalCatalog((catalog) => {
             const items = catalog.posts;
             const existingIndex = items.findIndex((item) => Number(item.id) === Number(post && post.id));
             const existing = existingIndex >= 0 ? items[existingIndex] : null;
@@ -509,14 +695,14 @@
         });
     }
 
-    function listLocalMedia() {
-        return sortByUpdatedDesc(readLocalCatalog().media).map(normalizeMedia);
+    async function listLocalMedia() {
+        return sortByUpdatedDesc((await readLocalCatalog()).media).map(normalizeMedia);
     }
 
-    function saveLocalMedia(media) {
+    async function saveLocalMedia(media) {
         let savedMedia = null;
 
-        mutateLocalCatalog((catalog) => {
+        await mutateLocalCatalog((catalog) => {
             const items = catalog.media;
             const existingIndex = items.findIndex((item) => Number(item.id) === Number(media && media.id));
             const existing = existingIndex >= 0 ? items[existingIndex] : null;
@@ -782,7 +968,7 @@
                     throw new Error("Enter admin username and password.");
                 }
 
-                const session = writeLocalAdminSession({
+                const session = await writeLocalAdminSession({
                     username,
                     ok: true
                 });
@@ -798,7 +984,7 @@
                     throw error;
                 }
 
-                const session = readLocalAdminSession();
+                const session = await readLocalAdminSession();
                 if (session) {
                     return session;
                 }
@@ -819,7 +1005,7 @@
                     throw error;
                 }
 
-                writeLocalAdminSession(null);
+                await writeLocalAdminSession(null);
                 return { ok: true };
             }
         },
@@ -852,7 +1038,7 @@
                 return (payload.items || []).map(normalizeProduct);
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return listLocalProducts(params);
+                    return await listLocalProducts(params);
                 }
 
                 throw error;
@@ -864,7 +1050,7 @@
                 return normalizeProduct(payload.item);
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return getLocalProduct(id);
+                    return await getLocalProduct(id);
                 }
 
                 throw error;
@@ -881,7 +1067,7 @@
                 return normalizeProduct(payload.item);
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return saveLocalProduct(product || {});
+                    return await saveLocalProduct(product || {});
                 }
 
                 throw error;
@@ -892,7 +1078,7 @@
                 return await request(`/products/${id}`, { method: "DELETE" });
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return deleteLocalProduct(id);
+                    return await deleteLocalProduct(id);
                 }
 
                 throw error;
@@ -909,7 +1095,7 @@
                 return (payload.items || []).map(normalizePost);
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return listLocalPosts(params);
+                    return await listLocalPosts(params);
                 }
 
                 throw error;
@@ -926,7 +1112,7 @@
                 return normalizePost(payload.item);
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return saveLocalPost(post || {});
+                    return await saveLocalPost(post || {});
                 }
 
                 throw error;
@@ -937,7 +1123,7 @@
                 return await request(`/posts/${id}`, { method: "DELETE" });
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return deleteLocalPost(id);
+                    return await deleteLocalPost(id);
                 }
 
                 throw error;
@@ -949,7 +1135,7 @@
                 return (payload.items || []).map(normalizeMedia);
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return listLocalMedia();
+                    return await listLocalMedia();
                 }
 
                 throw error;
@@ -966,7 +1152,7 @@
                 return normalizeMedia(payload.item);
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return saveLocalMedia(media || {});
+                    return await saveLocalMedia(media || {});
                 }
 
                 throw error;
@@ -977,7 +1163,7 @@
                 return await request(`/media/${id}`, { method: "DELETE" });
             } catch (error) {
                 if (shouldUseLocalFallback(error)) {
-                    return deleteLocalMedia(id);
+                    return await deleteLocalMedia(id);
                 }
 
                 throw error;

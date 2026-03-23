@@ -301,7 +301,7 @@ async function saveProduct(event) {
         const existing = adminState.products.find((item) => Number(item.id) === Number(adminState.editingProductId));
         const imagePayload = await buildImagePayload("productImageFile", "productImage", existing ? existing.image : "");
 
-        await api.saveProduct({
+        const savedProduct = await api.saveProduct({
             id: adminState.editingProductId || undefined,
             name: document.getElementById("productName").value.trim(),
             price: Number(document.getElementById("productPrice").value || 0),
@@ -316,7 +316,15 @@ async function saveProduct(event) {
         });
 
         hideAddProductForm();
-        await loadProductsTable();
+        await loadProductsTable().catch(() => null);
+        if (savedProduct && !adminState.products.some((item) => Number(item.id) === Number(savedProduct.id))) {
+            adminState.products = [
+                savedProduct,
+                ...adminState.products.filter((item) => Number(item.id) !== Number(savedProduct.id))
+            ];
+            renderProductsTable();
+            loadDashboard();
+        }
         await loadImagesGallery();
         notifyCatalogUpdated("products");
         showStatus(
